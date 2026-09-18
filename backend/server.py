@@ -208,6 +208,28 @@ async def login(body: LoginBody):
     return {"access_token": token, "user": clean(user)}
 
 
+class RoleLoginBody(BaseModel):
+    role: str
+    code: Optional[str] = None
+
+
+@api_router.post("/auth/role-login")
+async def role_login(body: RoleLoginBody):
+    if body.role not in ("admin", "comptable", "enseignant"):
+        raise HTTPException(status_code=400, detail="Rôle invalide")
+    if body.role == "comptable":
+        user = await db.users.find_one({"role": "comptable"})
+    else:
+        code = (body.code or "").strip()
+        if len(code) != 4 or not code.isdigit():
+            raise HTTPException(status_code=400, detail="Code à 4 chiffres requis")
+        user = await db.users.find_one({"role": body.role, "access_code": code})
+    if not user:
+        raise HTTPException(status_code=401, detail="Code d'accès incorrect")
+    token = create_access_token(str(user["_id"]), user["email"], user["role"])
+    return {"access_token": token, "user": clean(user)}
+
+
 @api_router.get("/auth/me")
 async def me(user: dict = Depends(get_current_user)):
     return user
@@ -871,8 +893,13 @@ async def ensure_user(email, password, name, role, access_code=None, salaire=0.0
     email = email.lower()
     existing = await db.users.find_one({"email": email})
     if existing:
+        upd = {}
         if not verify_password(password, existing["password_hash"]):
-            await db.users.update_one({"email": email}, {"$set": {"password_hash": hash_password(password)}})
+            upd["password_hash"] = hash_password(password)
+        if access_code and existing.get("access_code") != access_code:
+            upd["access_code"] = access_code
+        if upd:
+            await db.users.update_one({"email": email}, {"$set": upd})
         return str(existing["_id"])
     doc = {
         "name": name, "email": email, "password_hash": hash_password(password),
@@ -884,7 +911,8 @@ async def ensure_user(email, password, name, role, access_code=None, salaire=0.0
 
 
 async def seed():
-    admin_id = await ensure_user(os.environ["ADMIN_EMAIL"], os.environ["ADMIN_PASSWORD"], "Directeur Général", "admin")
+    admin_id = await ensure_user(os.environ["ADMIN_EMAIL"], os.environ["ADMIN_PASSWORD"], "Directeur Général", "admin",
+                                 access_code=os.environ["ADMIN_ACCESS_CODE"])
     await ensure_user(os.environ["COMPTABLE_EMAIL"], os.environ["COMPTABLE_PASSWORD"], "Comptable Principal", "comptable")
     prof_id = await ensure_user(os.environ["ENSEIGNANT_EMAIL"], os.environ["ENSEIGNANT_PASSWORD"], "Prof. Kabongo Jean",
                                 "enseignant", access_code=os.environ["ENSEIGNANT_ACCESS_CODE"], salaire=450.0)

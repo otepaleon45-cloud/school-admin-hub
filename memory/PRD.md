@@ -44,3 +44,7 @@ users, classes, students, payments, expenses, subjects, evaluations, grades, rec
 ## 2026-06 — Remise à zéro
 - Toutes les données de démo (classes, élèves, paiements, dépenses, matières, évaluations, cotes, réclamations, paies profs, prof2) supprimées.
 - seed() ne crée plus que les 3 comptes utilisateurs (admin, comptable, enseignant). Système vierge.
+
+## 2026-06 — Page de connexion simplifiée
+- Trois boutons uniquement (Administrateur, Comptable, Enseignant). Admin et Enseignant demandent un code à 4 chiffres ; Comptable entre directement.
+- Backend: POST /api/auth/role-login ; ADMIN_ACCESS_CODE ajouté au .env.
