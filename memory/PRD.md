@@ -52,3 +52,9 @@ users, classes, students, payments, expenses, subjects, evaluations, grades, rec
 ## 2026-06 — Identité école + classes
 - École : Complexe Scolaire St. Joseph du Grand Lac (C.S.J.G.L), Kamanyola, école privée agréée. Logo dans /frontend/public/logo.png (accueil, sidebar, reçus, bulletins).
 - 31 classes créées au démarrage (seed_classes) : Maternel 1er-3e niveau, Primaire 1ère-6e année, Éducation de base 7e-8e, Humanités 1ère-4e × 5 options (Pédagogie générale, Technique sociale, Commerciale de Gestion, Électricité, Agronomie). Frais à 0$ à définir par le comptable.
+
+## 2026-06 — Frais par classe, édition comptes, paramètres
+- Comptable : onglet « Frais par classe » (PUT /api/classes/{id}) — inscription + T1/T2/T3 par classe, dette élève auto.
+- Guichet et tableau admin : détail des paiements (nom élève + montant par rubrique). Admin dashboard renvoie derniers_paiements.
+- Admin : édition des comptes (PUT /api/users/{id}) — nom, code 4 chiffres (unique), salaire, mot de passe.
+- Admin : onglet « Paramètres » (GET/PUT /api/settings) — nom école, sigle, ville, année scolaire, liste des options. Utilisé par Layout, reçus, bulletins (hooks/useSettings.js).

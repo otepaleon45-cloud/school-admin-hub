@@ -3,12 +3,13 @@ import { useTab } from "@/hooks/useTab";
 import Layout from "@/components/Layout";
 import StatCard from "@/components/StatCard";
 import BulletinModal from "@/components/BulletinModal";
+import SettingsPanel from "@/components/SettingsPanel";
 import api, { money, formatApiError } from "@/lib/api";
 import { toast } from "sonner";
 import {
   Users, GraduationCap, DollarSign, TrendingDown, Scale, Wallet,
   AlertCircle, Calculator, Award, ShieldCheck, PlusCircle, Trash2,
-  CheckCircle2, Loader2,
+  CheckCircle2, Loader2, Pencil, Settings,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
@@ -18,6 +19,7 @@ const TABS = [
   { key: "resultats", label: "Résultats scolaires" },
   { key: "reclamations", label: "Réclamations" },
   { key: "utilisateurs", label: "Utilisateurs" },
+  { key: "parametres", label: "Paramètres" },
 ];
 
 export default function AdminDashboard() {
@@ -58,6 +60,26 @@ export default function AdminDashboard() {
             <h3 className="font-display font-semibold text-slate-800 mb-4">Situation financière</h3>
             <FinanceBars recettes={stats.recettes} depenses={stats.depenses} dettes={stats.dettes_eleves} />
           </div>
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden" data-testid="recent-payments">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-display font-semibold text-slate-800">Derniers paiements reçus</h3>
+              <button onClick={() => setTab("parametres")} data-testid="btn-goto-settings" className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-700 hover:text-indigo-900"><Settings className="h-4 w-4" /> Paramètres</button>
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-slate-500 text-xs uppercase"><tr><th className="text-left px-6 py-2">Élève</th><th className="text-left px-4 py-2">Date</th><th className="text-left px-4 py-2">Détail</th><th className="text-right px-6 py-2">Montant</th></tr></thead>
+              <tbody>
+                {stats.derniers_paiements.map((p) => (
+                  <tr key={p.id} className="border-t border-slate-100">
+                    <td className="px-6 py-2.5 font-medium text-slate-800">{p.student_name}</td>
+                    <td className="px-4 py-2.5 text-slate-500">{new Date(p.date).toLocaleDateString("fr-FR")}</td>
+                    <td className="px-4 py-2.5 text-xs text-slate-600">{(p.allocations || []).map((a) => <span key={a.category} className="inline-block mr-2 bg-slate-100 rounded px-1.5 py-0.5">{a.category.toUpperCase()}: {money(a.amount)}</span>)}</td>
+                    <td className="px-6 py-2.5 text-right font-mono font-medium text-emerald-700">{money(p.total_amount)}</td>
+                  </tr>
+                ))}
+                {stats.derniers_paiements.length === 0 && <tr><td colSpan={4} className="px-6 py-6 text-center text-slate-400">Aucun paiement enregistré</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -65,6 +87,7 @@ export default function AdminDashboard() {
       {tab === "resultats" && <ResultsPanel onOpen={setBulletin} />}
       {tab === "reclamations" && <ReclamationsPanel reloadStats={load} />}
       {tab === "utilisateurs" && <UsersPanel />}
+      {tab === "parametres" && <SettingsPanel />}
 
       <BulletinModal bulletin={bulletin} open={!!bulletin} onClose={() => setBulletin(null)} />
     </Layout>
@@ -260,6 +283,15 @@ function UsersPanel() {
     finally { setSaving(false); }
   };
   const del = async (id) => { if (!window.confirm("Supprimer cet utilisateur ?")) return; await api.delete(`/users/${id}`); load(); };
+  const [edit, setEdit] = useState(null);
+  const saveEdit = async () => {
+    setSaving(true);
+    try {
+      await api.put(`/users/${edit.id}`, { name: edit.name, access_code: edit.access_code ?? "", password: edit.password || null, salaire_trimestre: parseFloat(edit.salaire_trimestre) || 0 });
+      toast.success("Compte mis à jour"); setEdit(null); load();
+    } catch (e) { toast.error(formatApiError(e.response?.data?.detail)); }
+    finally { setSaving(false); }
+  };
 
   return (
     <div>
@@ -269,14 +301,18 @@ function UsersPanel() {
       </div>
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500 text-xs uppercase"><tr><th className="text-left px-4 py-3">Nom</th><th className="text-left px-4 py-3">Email</th><th className="text-left px-4 py-3">Rôle</th><th className="text-right px-4 py-3">Action</th></tr></thead>
+          <thead className="bg-slate-50 text-slate-500 text-xs uppercase"><tr><th className="text-left px-4 py-3">Nom</th><th className="text-left px-4 py-3">Email</th><th className="text-left px-4 py-3">Rôle</th><th className="text-left px-4 py-3">Code</th><th className="text-right px-4 py-3">Action</th></tr></thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id} className="border-t border-slate-100">
                 <td className="px-4 py-3 font-medium text-slate-800">{u.name}</td>
                 <td className="px-4 py-3 text-slate-600">{u.email}</td>
                 <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs font-medium ${ROLE[u.role]}`}>{u.role}</span></td>
-                <td className="px-4 py-3 text-right">{u.role !== "admin" && <button onClick={() => del(u.id)} className="text-slate-400 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button>}</td>
+                <td className="px-4 py-3 font-mono text-slate-600" data-testid={`user-code-${u.id}`}>{u.role === "comptable" ? "—" : (u.access_code || <span className="text-rose-500 text-xs">non défini</span>)}</td>
+                <td className="px-4 py-3 text-right space-x-3">
+                  <button onClick={() => setEdit({ ...u, password: "" })} data-testid={`btn-edit-user-${u.id}`} className="text-slate-400 hover:text-indigo-600" title="Modifier"><Pencil className="h-4 w-4" /></button>
+                  {u.role !== "admin" && <button onClick={() => del(u.id)} className="text-slate-400 hover:text-rose-600" title="Supprimer"><Trash2 className="h-4 w-4" /></button>}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -290,15 +326,37 @@ function UsersPanel() {
           <label className="block"><span className="text-xs font-medium text-slate-600">Mot de passe</span><input className="fld mt-1" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} data-testid="input-user-password" /></label>
           <label className="block"><span className="text-xs font-medium text-slate-600">Rôle</span>
             <select className="fld mt-1" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} data-testid="select-user-role"><option value="comptable">Comptable</option><option value="enseignant">Enseignant</option><option value="admin">Administrateur</option></select></label>
-          {form.role === "enseignant" && (
+          {form.role !== "comptable" && (
             <div className="grid grid-cols-2 gap-3">
-              <label className="block"><span className="text-xs font-medium text-slate-600">Code d'accès (PIN)</span><input className="fld mt-1" value={form.access_code} onChange={(e) => setForm({ ...form, access_code: e.target.value })} /></label>
-              <label className="block"><span className="text-xs font-medium text-slate-600">Salaire/trimestre ($)</span><input type="number" className="fld mt-1" value={form.salaire_trimestre} onChange={(e) => setForm({ ...form, salaire_trimestre: e.target.value })} /></label>
+              <label className="block"><span className="text-xs font-medium text-slate-600">Code d'accès (4 chiffres)</span><input className="fld mt-1 font-mono" maxLength={4} value={form.access_code} onChange={(e) => setForm({ ...form, access_code: e.target.value.replace(/\D/g, "") })} data-testid="input-user-code" /></label>
+              {form.role === "enseignant" && <label className="block"><span className="text-xs font-medium text-slate-600">Salaire/trimestre ($)</span><input type="number" className="fld mt-1" value={form.salaire_trimestre} onChange={(e) => setForm({ ...form, salaire_trimestre: e.target.value })} /></label>}
             </div>
           )}
           <DialogFooter>
             <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-lg border border-slate-300 text-sm text-slate-600">Annuler</button>
             <button onClick={submit} disabled={saving} data-testid="btn-save-user" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-60">{saving && <Loader2 className="h-4 w-4 animate-spin" />} Créer</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader><DialogTitle className="font-display">Modifier le compte</DialogTitle></DialogHeader>
+          {edit && (
+            <>
+              <label className="block"><span className="text-xs font-medium text-slate-600">Nom complet</span><input className="fld mt-1" value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} data-testid="input-edit-name" /></label>
+              {edit.role !== "comptable" && (
+                <label className="block"><span className="text-xs font-medium text-slate-600">Code d'accès (4 chiffres)</span>
+                  <input className="fld mt-1 font-mono tracking-widest" maxLength={4} value={edit.access_code || ""} onChange={(e) => setEdit({ ...edit, access_code: e.target.value.replace(/\D/g, "") })} data-testid="input-edit-code" /></label>
+              )}
+              {edit.role === "enseignant" && (
+                <label className="block"><span className="text-xs font-medium text-slate-600">Salaire/trimestre ($)</span><input type="number" className="fld mt-1" value={edit.salaire_trimestre ?? 0} onChange={(e) => setEdit({ ...edit, salaire_trimestre: e.target.value })} data-testid="input-edit-salaire" /></label>
+              )}
+              <label className="block"><span className="text-xs font-medium text-slate-600">Nouveau mot de passe (optionnel)</span><input type="password" className="fld mt-1" value={edit.password} onChange={(e) => setEdit({ ...edit, password: e.target.value })} data-testid="input-edit-password" /></label>
+            </>
+          )}
+          <DialogFooter>
+            <button onClick={() => setEdit(null)} className="px-4 py-2 rounded-lg border border-slate-300 text-sm text-slate-600">Annuler</button>
+            <button onClick={saveEdit} disabled={saving} data-testid="btn-save-edit-user" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-60">{saving && <Loader2 className="h-4 w-4 animate-spin" />} Enregistrer</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

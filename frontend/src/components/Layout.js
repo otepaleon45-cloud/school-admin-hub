@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/hooks/useSettings";
 import {
   LayoutDashboard, Users, Wallet, GraduationCap, ShieldCheck, LogOut,
   Menu, X, Receipt, BookOpen, AlertCircle, DollarSign, ArrowLeft,
@@ -30,6 +31,7 @@ export default function Layout({ children, title, subtitle }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const settings = useSettings();
   const meta = ROLE_META[user?.role] || {};
   const nav = NAV[user?.role] || [];
 
@@ -52,8 +54,8 @@ export default function Layout({ children, title, subtitle }) {
             <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
           </div>
           <div className="leading-tight">
-            <div className="font-display font-extrabold text-white text-lg">C.S.J.G.L</div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider">C.S.J.G.L Kamanyola</div>
+            <div className="font-display font-extrabold text-white text-lg">{settings.sigle || "C.S.J.G.L"}</div>
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider">{settings.sigle} {settings.ville}</div>
           </div>
         </div>
 
@@ -118,7 +120,7 @@ export default function Layout({ children, title, subtitle }) {
             {subtitle && <p className="text-xs text-slate-500 truncate">{subtitle}</p>}
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <span className="hidden sm:inline text-xs text-slate-500 font-medium">Année 2025 - 2026</span>
+            <span className="hidden sm:inline text-xs text-slate-500 font-medium">Année {settings.annee_scolaire}</span>
             <span className={`px-3 py-1 rounded-full border text-xs font-semibold ${meta.badge}`} data-testid="role-badge">
               {meta.label}
             </span>

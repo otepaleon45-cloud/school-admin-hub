@@ -263,6 +263,37 @@ async def create_user(body: UserCreate, user: dict = Depends(require_roles("admi
     return clean(doc)
 
 
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    password: Optional[str] = None
+    access_code: Optional[str] = None
+    salaire_trimestre: Optional[float] = None
+
+
+@api_router.put("/users/{user_id}")
+async def update_user(user_id: str, body: UserUpdate, user: dict = Depends(require_roles("admin"))):
+    upd = {}
+    if body.name:
+        upd["name"] = body.name
+    if body.password:
+        upd["password_hash"] = hash_password(body.password)
+    if body.access_code is not None:
+        code = body.access_code.strip()
+        if code and (len(code) != 4 or not code.isdigit()):
+            raise HTTPException(status_code=400, detail="Le code doit contenir 4 chiffres")
+        if code and await db.users.find_one({"access_code": code, "_id": {"$ne": oid(user_id)}}):
+            raise HTTPException(status_code=400, detail="Ce code est déjà utilisé par un autre compte")
+        upd["access_code"] = code or None
+    if body.salaire_trimestre is not None:
+        upd["salaire_trimestre"] = body.salaire_trimestre
+    if upd:
+        await db.users.update_one({"_id": oid(user_id)}, {"$set": upd})
+    doc = await db.users.find_one({"_id": oid(user_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    return clean(doc)
+
+
 @api_router.delete("/users/{user_id}")
 async def delete_user(user_id: str, user: dict = Depends(require_roles("admin"))):
     await db.users.delete_one({"_id": oid(user_id)})
@@ -289,6 +320,15 @@ async def create_class(body: ClassCreate, user: dict = Depends(require_roles("ad
     doc["created_at"] = now_iso()
     res = await db.classes.insert_one(doc)
     doc["_id"] = res.inserted_id
+    return clean(doc)
+
+
+@api_router.put("/classes/{class_id}")
+async def update_class(class_id: str, body: ClassCreate, user: dict = Depends(require_roles("admin", "comptable"))):
+    await db.classes.update_one({"_id": oid(class_id)}, {"$set": body.model_dump()})
+    doc = await db.classes.find_one({"_id": oid(class_id)})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Classe introuvable")
     return clean(doc)
 
 
@@ -791,6 +831,46 @@ async def inventory(user: dict = Depends(require_roles("admin"))):
 
 
 # ---------------------------------------------------------------------------
+# Settings
+# ---------------------------------------------------------------------------
+DEFAULT_SETTINGS = {
+    "nom_ecole": "Complexe Scolaire St. Joseph du Grand Lac",
+    "sigle": "C.S.J.G.L",
+    "ville": "Kamanyola",
+    "annee_scolaire": "2025-2026",
+    "options": ["Pédagogie générale", "Technique sociale", "Commerciale de Gestion", "Électricité", "Agronomie"],
+}
+
+
+class SettingsBody(BaseModel):
+    nom_ecole: str
+    sigle: str
+    ville: str
+    annee_scolaire: str
+    options: List[str]
+
+
+async def get_settings_doc() -> dict:
+    doc = await db.settings.find_one({"_id": "main"})
+    return {**DEFAULT_SETTINGS, **(doc or {})}
+
+
+@api_router.get("/settings")
+async def get_settings(user: dict = Depends(get_current_user)):
+    s = await get_settings_doc()
+    s.pop("_id", None)
+    return s
+
+
+@api_router.put("/settings")
+async def update_settings(body: SettingsBody, user: dict = Depends(require_roles("admin"))):
+    data = body.model_dump()
+    data["options"] = [o.strip() for o in data["options"] if o.strip()]
+    await db.settings.update_one({"_id": "main"}, {"$set": data}, upsert=True)
+    return data
+
+
+# ---------------------------------------------------------------------------
 # Dashboard aggregates
 # ---------------------------------------------------------------------------
 @api_router.get("/dashboard/admin")
@@ -815,8 +895,10 @@ async def dashboard_admin(user: dict = Depends(require_roles("admin"))):
 
     inv = await inventory(user)
     reclam_ouvertes = await db.reclamations.count_documents({"status": "ouverte"})
+    derniers = await list_payments(user)
 
     return {
+        "derniers_paiements": derniers[:10],
         "total_eleves": total_eleves,
         "inscrits": inscrits,
         "actifs": actifs,

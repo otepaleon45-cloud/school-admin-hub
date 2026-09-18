@@ -1,3 +1,4 @@
+import { useSettings } from "@/hooks/useSettings";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { money } from "@/lib/api";
 import { Printer, X } from "lucide-react";
@@ -8,6 +9,7 @@ function numberToFrenchWords(n) {
 }
 
 export default function ReceiptModal({ receipt, open, onClose }) {
+  const settings = useSettings();
   if (!receipt) return null;
   const d = new Date(receipt.date);
   return (
@@ -20,9 +22,9 @@ export default function ReceiptModal({ receipt, open, onClose }) {
               <div className="flex items-center gap-3">
                 <img src="/logo.png" alt="Logo CSJGL" className="h-14 w-14 object-contain" />
                 <div>
-                  <div className="font-display font-extrabold text-slate-900 text-lg leading-tight">C.S.J.G.L — École Privée Agréée</div>
-                  <div className="text-xs text-slate-600">Complexe Scolaire St. Joseph du Grand Lac · Kamanyola</div>
-                  <div className="text-[11px] text-slate-500">Année scolaire 2025-2026</div>
+                  <div className="font-display font-extrabold text-slate-900 text-lg leading-tight">{settings.sigle} — École Privée Agréée</div>
+                  <div className="text-xs text-slate-600">{settings.nom_ecole} · {settings.ville}</div>
+                  <div className="text-[11px] text-slate-500">Année scolaire {settings.annee_scolaire}</div>
                 </div>
               </div>
               <div className="text-right">

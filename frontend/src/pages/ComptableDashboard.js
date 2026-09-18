@@ -3,6 +3,7 @@ import { useTab } from "@/hooks/useTab";
 import Layout from "@/components/Layout";
 import StatCard from "@/components/StatCard";
 import ReceiptModal from "@/components/ReceiptModal";
+import ClassFeesPanel from "@/components/ClassFeesPanel";
 import api, { money, formatApiError } from "@/lib/api";
 import { toast } from "sonner";
 import {
@@ -26,7 +27,10 @@ const TABS = [
   { key: "eleves", label: "Élèves & Inscriptions" },
   { key: "guichet", label: "Guichet & Reçus" },
   { key: "depenses", label: "Recettes & Dépenses" },
+  { key: "frais", label: "Frais par classe" },
 ];
+
+const FEE_LABEL = { inscription: "Inscription", t1: "T1", t2: "T2", t3: "T3" };
 
 export default function ComptableDashboard() {
   const [tab, setTab] = useTab("vue");
@@ -109,6 +113,7 @@ export default function ComptableDashboard() {
                   <th className="text-left px-4 py-3">N° Quittance</th>
                   <th className="text-left px-4 py-3">Élève</th>
                   <th className="text-left px-4 py-3">Date</th>
+                  <th className="text-left px-4 py-3">Détail</th>
                   <th className="text-right px-4 py-3">Montant</th>
                   <th className="text-right px-4 py-3">Reçu</th>
                 </tr>
@@ -119,6 +124,9 @@ export default function ComptableDashboard() {
                     <td className="px-4 py-3 font-mono text-slate-800">{p.receipt_no}</td>
                     <td className="px-4 py-3 text-slate-700">{p.student_name}</td>
                     <td className="px-4 py-3 text-slate-500">{new Date(p.date).toLocaleDateString("fr-FR")}</td>
+                    <td className="px-4 py-3 text-xs text-slate-600">
+                      {(p.allocations || []).map((a) => <span key={a.category} className="inline-block mr-2 bg-slate-100 rounded px-1.5 py-0.5">{FEE_LABEL[a.category] || a.category}: {money(a.amount)}</span>)}
+                    </td>
                     <td className="px-4 py-3 text-right font-mono font-medium text-emerald-700">{money(p.total_amount)}</td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => openReceipt(p.id, setReceipt)} data-testid={`btn-view-receipt-${p.id}`} className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-xs font-medium">
@@ -127,7 +135,7 @@ export default function ComptableDashboard() {
                     </td>
                   </tr>
                 ))}
-                {payments.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Aucun paiement enregistré</td></tr>}
+                {payments.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Aucun paiement enregistré</td></tr>}
               </tbody>
             </table>
           </div>
@@ -137,6 +145,8 @@ export default function ComptableDashboard() {
       {tab === "depenses" && (
         <ExpensesPanel expenses={expenses} reload={load} recettes={stats?.recettes} depenses={stats?.depenses} />
       )}
+
+      {tab === "frais" && <ClassFeesPanel classes={classes} reload={load} />}
 
       <AddStudentDialog open={addOpen} onClose={() => setAddOpen(false)} classes={classes} onSaved={load} />
       <PaymentDialog student={payStudent} feeCats={feeCats} onClose={() => setPayStudent(null)} onPaid={(r) => { setReceipt(r); load(); }} />
