@@ -888,11 +888,7 @@ async def seed():
     await ensure_user(os.environ["COMPTABLE_EMAIL"], os.environ["COMPTABLE_PASSWORD"], "Comptable Principal", "comptable")
     prof_id = await ensure_user(os.environ["ENSEIGNANT_EMAIL"], os.environ["ENSEIGNANT_PASSWORD"], "Prof. Kabongo Jean",
                                 "enseignant", access_code=os.environ["ENSEIGNANT_ACCESS_CODE"], salaire=450.0)
-    # second teacher for inventory realism
-    await ensure_user("prof2@scolaretat.cd", "prof123", "Prof. Mwamba Alice", "enseignant", access_code="5678", salaire=400.0)
-
-    if await db.classes.count_documents({}) > 0:
-        return  # data already seeded
+    return  # système vierge : aucune donnée de démonstration
 
     classes_def = [
         {"name": "6ème Humanités", "section": "Pédagogique", "niveau": "Humanités", "frais_inscription": 30, "frais_t1": 50, "frais_t2": 50, "frais_t3": 50},

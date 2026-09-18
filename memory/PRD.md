@@ -40,3 +40,7 @@ users, classes, students, payments, expenses, subjects, evaluations, grades, rec
 ## 2026-06 — Bouton Retour
 - Bouton « Retour » (data-testid btn-back) dans l en-tête de chaque page (Layout.js), revient à l onglet/page précédent via l historique.
 - Onglets synchronisés avec l URL (?tab=...) via hooks/useTab.js.
+
+## 2026-06 — Remise à zéro
+- Toutes les données de démo (classes, élèves, paiements, dépenses, matières, évaluations, cotes, réclamations, paies profs, prof2) supprimées.
+- seed() ne crée plus que les 3 comptes utilisateurs (admin, comptable, enseignant). Système vierge.
