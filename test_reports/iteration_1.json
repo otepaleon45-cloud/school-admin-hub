@@ -1,0 +1,32 @@
+{
+  "summary": "Full-stack testing of ScolarEtat (French school management). Backend: 16/16 pytest cases pass, covering login, auth/me, admin dashboard KPIs, inventory + teacher-payment reste decrement, results ranking, reclamations resolve, user CRUD, comptable dashboard, student create + payment split with allocations + status auto-upgrade + receipt reopen, expense create, teacher my-classes/subjects, cahier grades + auto moyenne, bulletin (moyenne_generale/mention/rang), role guarding (403). Frontend: Admin dashboard KPIs render (total élèves 11, recettes $485, dépenses $1260, dettes élèves $1645, dettes enseignants $2540, 1 réclamation ouverte); Inventaire pay-teacher modal encaisses honoraire; Résultats scolaires bulletin modal opens; Réclamations Résoudre works; Comptable Élèves add student (TEST_UI_Student status Pré-inscrit); Guichet payment split totals correctly ($25 with $10+$15) and receipt-print-modal appears with btn-print-receipt, and can be reopened from Guichet & Reçus tab (btn-view-receipt-*); Dépenses added with success toast; Enseignant cahier loads cotations table, new evaluation creates, grade entry 15 updates moyenne to 14.8, bulletin modal shows matiere lines, moyenne générale 15.26/20, mention Bien, rang 2e/6 with btn-print-bulletin visible.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "All Dialogs (receipt, bulletin, add-user, teacher-payment, new-evaluation)", "issues": ["Radix DialogContent missing DialogTitle and Description – console warns 'DialogContent requires a DialogTitle for accessibility'. Wrap titles with VisuallyHidden or add DialogTitle/Description for screen-reader compliance."]},
+      {"screen": "Admin Utilisateurs add-user dialog & Enseignant Cahier subject picker", "issues": ["React hydration warning: <span> rendered as child of <option>. In AdminDashboard.js line 148 and EnseignantDashboard.js line 185, the option label is wrapped in an implicit span by the visual editor. Ensure options only contain plain text."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py", "/app/test_reports/pytest/pytest_results.xml"],
+  "action_items": [
+    "(Low) Add DialogTitle/DialogDescription (or VisuallyHidden wrapper) to all shadcn Dialogs to remove Radix a11y console errors.",
+    "(Low) Fix hydration warning by ensuring <option> children are plain strings (avoid dynamic span wrapping in AdminDashboard.js:148 and EnseignantDashboard.js:185)."
+  ],
+  "critical_code_review_comments": [
+    "server.py: dashboard/admin and dashboard/comptable iterate all students and call student_ledger sequentially with per-student class lookups; will be O(N*classes) and slow at scale — consider aggregation or caching class fees.",
+    "server.py bulletin(): recomputes averages for every classmate on every request (N students × M subjects) — cache or aggregate results/ranking.",
+    "PUT /api/students/{id} builds update dict then discards matricule via odd `... if not doc.get(...) else None` pattern; the discarded matricule can still overwrite when non-empty — semantics unclear.",
+    "No pagination on /api/students, /api/payments, /api/users — to_list(2000) will silently truncate.",
+    "CORS allow_credentials=True combined with allow_origins='*' fallback would be rejected by browsers when credentials are used; ensure CORS_ORIGINS env is set explicitly in prod.",
+    "server.py `@app.on_event('startup')` is deprecated in newer FastAPI; migrate to lifespan handlers."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin otepaleon45@gmail.com/admin123 · Comptable comptable@scolaretat.cd/compta123 · Enseignant enseignant@scolaretat.cd/prof123",
+  "seed_data_creation": "None (seed on startup already creates 3 classes, 10 students, 4 subjects with evals+grades, expenses, 2 reclamations, 2 teachers).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression suite at /app/backend/tests/backend_test.py (pytest, 16 tests, all pass). Only cosmetic frontend issues remain (Radix Dialog a11y warnings + <option><span> hydration warning). All requested user flows work end-to-end."
+}

@@ -1,4 +1,4 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Printer, School, X } from "lucide-react";
 
 export default function BulletinModal({ bulletin, open, onClose }) {
@@ -7,6 +7,7 @@ export default function BulletinModal({ bulletin, open, onClose }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl p-0 bg-white max-h-[90vh] overflow-y-auto" data-testid="bulletin-print-modal">
+        <DialogTitle className="sr-only">Bulletin scolaire</DialogTitle>
         <div className="print-area watermark">
           <div className="p-6">
             <div className="flex items-start justify-between border-b-2 border-slate-800 pb-4">

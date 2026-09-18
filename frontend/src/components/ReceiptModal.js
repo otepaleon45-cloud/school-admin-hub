@@ -1,4 +1,4 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { money } from "@/lib/api";
 import { Printer, School, X } from "lucide-react";
 
@@ -13,6 +13,7 @@ export default function ReceiptModal({ receipt, open, onClose }) {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg p-0 bg-white" data-testid="receipt-print-modal">
+        <DialogTitle className="sr-only">Reçu de paiement</DialogTitle>
         <div className="print-area watermark">
           <div className="p-6">
             <div className="flex items-start justify-between border-b-2 border-slate-800 pb-4">
