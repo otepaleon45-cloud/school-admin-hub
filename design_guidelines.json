@@ -1,0 +1,228 @@
+{
+  "system_identity": {
+    "name": "E1 Creative Director & School ERP Specialist",
+    "mission": "Design guidelines for 'ScolarEtat' (Système de Gestion Scolaire d'État Général) - an administrative, financial, and pedagogical ERP tailored for 3 specialized roles: Administrateur, Comptable, Enseignant.",
+    "theme_mode": "Light-first with deep slate administrative framing. Clean, high-contrast, editorial precision meets state school institutional authority. Optional soft dark-slate mode for night-time grading.",
+    "currency": "USD ($)",
+    "primary_language": "Français (FR)"
+  },
+  "design_principles": {
+    "institution_authority": "Crisp typography and institutional navy/slate balance that feels like a prestigious national education academy, not a generic SaaS clone.",
+    "tactile_clarity": "High-density data tables, clear financial splitting badges, dynamic gradebook cells with visual pass/fail indicator thresholds (>=10/20 in soft emerald, <10 in soft amber/rose).",
+    "role_specialization": "Strict visual role distinction via distinct badge accents: Admin (Deep Royal Indigo #1E3A8A / #3B82F6), Comptable (Forest Emerald #065F46 / #10B981), Enseignant (Warm Amber / Ochre #B45309 / #F59E0B).",
+    "printable_artifacts": "All receipts, cahiers de cotes, and bulletins must render clean on screen with direct print-ready CSS (@media print) and dedicated instant PDF export triggers."
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Plus Jakarta Sans, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "h1": "text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50",
+      "h2": "text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100",
+      "h3": "text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-200",
+      "h4": "text-lg font-medium text-slate-800 dark:text-slate-200"
+    },
+    "body": {
+      "font_family": "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+      "regular": "text-sm text-slate-600 dark:text-slate-300 leading-relaxed",
+      "subtext": "text-xs text-slate-500 dark:text-slate-400 font-normal",
+      "table_numeric": "font-mono font-medium text-slate-900 dark:text-slate-100 tabular-nums"
+    },
+    "banned_fonts": [
+      "Comic Sans",
+      "Papyrus",
+      "Space Grotesk (for dashboard body)",
+      "Generic Times New Roman"
+    ]
+  },
+  "color_palette": {
+    "mode": "Light-dominant institutional luxury (Archetype 4: Swiss & High-Contrast meets Archival Institutional)",
+    "primary": {
+      "main": "#1E3A8A",
+      "hover": "#172554",
+      "subtle": "#EFF6FF",
+      "border": "#BFDBFE"
+    },
+    "role_accents": {
+      "admin": {
+        "badge_bg": "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800",
+        "primary_btn": "bg-indigo-600 hover:bg-indigo-700 text-white"
+      },
+      "comptable": {
+        "badge_bg": "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800",
+        "primary_btn": "bg-emerald-600 hover:bg-emerald-700 text-white"
+      },
+      "enseignant": {
+        "badge_bg": "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
+        "primary_btn": "bg-amber-600 hover:bg-amber-700 text-white"
+      }
+    },
+    "neutrals": {
+      "background": "#F8FAFC",
+      "card_surface": "#FFFFFF",
+      "sidebar_surface": "#0F172A",
+      "sidebar_text": "#F8FAFC",
+      "border_default": "#E2E8F0",
+      "border_subtle": "#F1F5F9"
+    },
+    "status_tokens": {
+      "paid_success": "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300",
+      "partial_warning": "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300",
+      "unpaid_debt": "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-900/40 dark:text-rose-300",
+      "in_progress": "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300"
+    }
+  },
+  "layout_and_navigation": {
+    "structure": "Fixed collapsible left sidebar (dark slate navy) + sticky topbar with school year selector ('2025 - 2026'), active role badge, currency display, quick actions, and user profile.",
+    "sidebar_layout": {
+      "width": "w-64 shrink-0",
+      "bg": "bg-slate-900 text-slate-200 border-r border-slate-800",
+      "header": "Logo 'ScolarEtat' with institutional emblem badge and school name 'Lycée d'État Général Lumumba'",
+      "role_switcher_quick": "Top role switcher for demo/evaluation convenience (Admin / Comptable / Enseignant) with quick badge indication."
+    },
+    "topbar_layout": {
+      "height": "h-16 px-6",
+      "bg": "bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800",
+      "elements": [
+        "Breadcrumbs / active view indicator",
+        "Trimestre selector (Trimestre 1, Trimestre 2, Trimestre 3)",
+        "Notifications center (Réclamations récentes, alertes dettes)",
+        "Role indicator pill",
+        "Sign out / User profile popover"
+      ]
+    }
+  },
+  "screen_specifications": {
+    "login_screen": {
+      "path": "/login",
+      "layout": "Split view: Left side 45% featuring school architecture and state educational crest with inspiring French quote; Right side clean institutional login card with email, password, role demo quick-fill chips for instant evaluator access."
+    },
+    "admin_dashboard": {
+      "path": "/admin",
+      "stats_kpis": [
+        "Total des élèves (inscrits vs actifs vs suspendus)",
+        "Classes & Sections actives",
+        "Recettes totales ($) vs Dépenses ($) vs Solde net",
+        "Dettes élèves globales ($)",
+        "Dettes envers enseignants ($ honoraires restants)",
+        "Réclamations ouvertes (avec niveau de priorité)"
+      ],
+      "financial_inventory_module": "Calculateur d'honoraires enseignants par heure/cours, trimestres payés, montants restants à décaisser, budget prévisionnel annuel.",
+      "school_reports_and_results": "Sélecteur de classe (ex: 6ème Humanités, 3ème Secondaire) + Section (Scientifique, Littéraire, Pédagogique) -> Tableau de synthèse des réussites, taux de réussite, moyennes générales de classe."
+    },
+    "accountant_dashboard": {
+      "path": "/comptable",
+      "sub_modules": [
+        {
+          "title": "Gestion Administrative des Élèves",
+          "features": "Ajout nouvel élève, formulaire d'inscription complet (Matricule, Nom, Post-nom, Prénom, Genre, Date de naissance, Classe, Section, Contact Tuteur), validation du statut 'Pré-inscrit' vers 'Inscrit'."
+        },
+        {
+          "title": "Guichet de Paiement & Répartition Intelligente",
+          "features": "Quand un parent verse un montant (ex: 100$ ou 250$), le système propose la répartition dynamique : Frais d'inscription (ex: 30$), Frais scolaires T1 (ex: 50$), Acompte T2 (ex: 20$). Validation immédiate et mise à jour du grand livre."
+        },
+        {
+          "title": "Génération de Reçu Imprimable",
+          "features": "Reçu officiel avec N° Quittance unique, cachet école d'État en filigrane, détail de la répartition, montant en chiffres et lettres, bouton 'Imprimer le Reçu' / 'Télécharger PDF'."
+        },
+        {
+          "title": "Registre des Recettes & Dépenses",
+          "features": "Historique complet filtrable par date, catégorie (Salaires profs, Matériel, Entretien, Frais admin), export CSV/Imprimable."
+        }
+      ]
+    },
+    "teacher_dashboard": {
+      "path": "/enseignant",
+      "access_code_gate": "Option de sécurisation par code d'accès enseignant (PIN à 4 chiffres) pour ouvrir le cahier de cotes.",
+      "sub_modules": [
+        {
+          "title": "Mes Classes & Matières",
+          "features": "Affichage des cours attribués (ex: Mathématiques - 5ème Scientifique A, Physique - 6ème Scientifique B) avec effectif des élèves."
+        },
+        {
+          "title": "Évaluations & Cahier de Cotations",
+          "features": "Bouton '+ Nouvelle Évaluation' (Type: Devoir, Interrogation, Examen de trimestre; Note max: /20 ou /50; Coefficient). Grille interactive de notation en direct: la saisie met à jour instantanément les moyennes pondérées de chaque élève."
+        },
+        {
+          "title": "Fiches Synthétiques & Impression Cahier",
+          "features": "Tableau récapitulatif par trimestre avec boutons 'Imprimer Cahier de Cotes' et 'Transmettre à la Direction'."
+        },
+        {
+          "title": "Génération Automatique des Bulletins Scolaires",
+          "features": "Génération du Bulletin officiel d'État complet par élève : tableau de toutes les matières avec cotes Trimestre 1, 2, 3, total général, pourcentage, application, conduite, place/rang, mention et signature imprimable."
+        }
+      ]
+    }
+  },
+  "image_assets": {
+    "login_hero_classroom": {
+      "url": "https://images.unsplash.com/photo-1509062522246-3755977927d7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwxfHxzY2hvb2wlMjBjbGFzc3Jvb20lMjBzdHVkZW50cyUyMGVkdWNhdGlvbnxlbnwwfHx8fDE3ODk3MzIyNzd8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Salle de classe moderne avec élèves attentifs et enseignant, parfait pour l'arrière-plan du portail d'authentification.",
+      "category": "auth_hero"
+    },
+    "teacher_grading_sheet": {
+      "url": "https://images.unsplash.com/photo-1606326608690-4e0281b1e588?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwyfHx0ZWFjaGVyJTIwZ3JhZGluZyUyMHBhcGVyc3xlbnwwfHx8fDE3ODk3MzIyODN8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Fiche de cotation et d'évaluation avec stylo, utilisé dans le tableau de bord enseignant.",
+      "category": "teacher_context"
+    },
+    "accounting_invoice_desk": {
+      "url": "https://images.unsplash.com/photo-1554224154-26032ffc0d07?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwxfHxmaW5hbmNlJTIwaW52b2ljZSUyMHJlY2VpcHQlMjBhY2NvdW50aW5nfGVufDB8fHx8MTc4OTczMjI4M3ww&ixlib=rb-4.1.0&q=85",
+      "description": "Documents financiers, calculatrice et grand livre de comptabilité pour le module financier.",
+      "category": "comptable_context"
+    },
+    "student_focused_study": {
+      "url": "https://images.unsplash.com/photo-1588072432836-e10032774350?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwyfHxzY2hvb2wlMjBjbGFzc3Jvb20lMjBzdHVkZW50cyUyMGVkdWNhdGlvbnxlbnwwfHx8fDE3ODk3MzIyNzd8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Élève studieux rédigeant son évaluation, utilisé dans la fiche élève et bulletin.",
+      "category": "student_profile"
+    }
+  },
+  "interactive_components": {
+    "split_payment_calculator": {
+      "description": "Composant interactif permettant de saisir un montant reçu (ex: $100) et de ventiler automatiquement ou manuellement entre Frais d'inscription ($30 max), Frais T1 ($50), Frais T2 ($20). Calcule en direct le solde restant.",
+      "data_test_id": "payment-split-calculator"
+    },
+    "live_gradebook_table": {
+      "description": "Tableau réactif avec colonnes d'évaluations dynamiques, calcul instantané de la moyenne sur 20, badge de mention (Très Bien, Bien, Assez Bien, Ajourné) et bouton d'impression officiel.",
+      "data_test_id": "cahier-cotations-table"
+    },
+    "printable_receipt_modal": {
+      "description": "Modale de reçu officiel imprimable au format A5/Ticket officiel avec numéro de quittance, date, ventilation comptable, cachet et bouton window.print().",
+      "data_test_id": "receipt-print-modal"
+    },
+    "printable_bulletin_modal": {
+      "description": "Modale de bulletin scolaire officiel complet avec en-tête d'État, grille des matières par trimestre, moyennes, rang, conduite, décision du jury de délibération et bouton d'impression.",
+      "data_test_id": "bulletin-print-modal"
+    },
+    "inventory_debt_calculator": {
+      "description": "Calculateur d'inventaire financier de l'admin: calcul automatique de la masse salariale des enseignants, dettes par trimestre et projection de trésorerie.",
+      "data_test_id": "admin-inventory-calculator"
+    }
+  },
+  "data_testid_conventions": {
+    "rules": "All inputs, buttons, navigation items, metrics, and print triggers MUST contain data-testid in kebab-case format.",
+    "samples": [
+      "data-testid=\"role-nav-admin\"",
+      "data-testid=\"role-nav-comptable\"",
+      "data-testid=\"role-nav-enseignant\"",
+      "data-testid=\"btn-quick-login-admin\"",
+      "data-testid=\"btn-quick-login-comptable\"",
+      "data-testid=\"btn-quick-login-enseignant\"",
+      "data-testid=\"input-payment-total-amount\"",
+      "data-testid=\"btn-allocate-payment\"",
+      "data-testid=\"btn-print-receipt\"",
+      "data-testid=\"btn-new-evaluation\"",
+      "data-testid=\"btn-print-cahier-cotes\"",
+      "data-testid=\"btn-generate-bulletin\"",
+      "data-testid=\"select-class-filter\"",
+      "data-testid=\"select-section-filter\"",
+      "data-testid=\"select-trimestre-filter\""
+    ]
+  },
+  "universal_guidelines_for_main_agent": [
+    "Write all frontend code in standard JavaScript (.js / .jsx), NOT TypeScript (.tsx), ensuring total runtime compatibility.",
+    "Interface must be fully in French (FR) with Dollar ($) as specified in user choices.",
+    "Do not use transparent backgrounds for floating navigation bars, dropdowns, or modals. Use backdrop-blur with opaque tinting (e.g., bg-white/95 or bg-slate-900/95).",
+    "Include pre-seeded realistic academic data: 3 classes (6ème Humanités, 5ème Scientifique, 4ème Littéraire), multiple sections, real student names, detailed fees ledger, and grade records.",
+    "Provide a prominent Quick Demo Role Switcher in the topbar or sidebar so anyone reviewing can switch seamlessly between Admin, Comptable, and Enseignant without re-logging in repeatedly.",
+    "Add dedicated print styles (@media print) to ensure Reçus de paiement and Bulletins de notes render cleanly on paper without sidebars or navigation clutter.",
+    "Use Lucide icons (BookOpen, Calculator, GraduationCap, ShieldCheck, Printer, DollarSign, Users, Award, FileSpreadsheet, PlusCircle, AlertCircle) for intuitive semantic visual navigation."
+  ]
+}
