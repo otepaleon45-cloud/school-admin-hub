@@ -2,9 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { formatApiError } from "@/lib/api";
-import { School, ShieldCheck, Wallet, GraduationCap, Loader2, ArrowLeft, KeyRound } from "lucide-react";
+import { ShieldCheck, Wallet, GraduationCap, Loader2, ArrowLeft, KeyRound } from "lucide-react";
 
-const HERO = "https://images.unsplash.com/photo-1509062522246-3755977927d7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA4Mzl8MHwxfHNlYXJjaHwxfHxzY2hvb2wlMjBjbGFzc3Jvb20lMjBzdHVkZW50cyUyMGVkdWNhdGlvbnxlbnwwfHx8fDE3ODk3MzIyNzd8MA&ixlib=rb-4.1.0&q=85";
 
 const ROLES = [
   { role: "admin", label: "Administrateur", icon: ShieldCheck, needCode: true, cls: "border-indigo-200 hover:bg-indigo-50 text-indigo-700", btn: "bg-indigo-600 hover:bg-indigo-700", testid: "btn-quick-login-admin" },
@@ -44,28 +43,28 @@ export default function Login() {
   return (
     <div className="min-h-screen flex bg-slate-900">
       <div className="hidden lg:flex w-[45%] relative">
-        <img src={HERO} alt="École" className="absolute inset-0 w-full h-full object-cover" />
+        <img src="/logo.png" alt="Logo" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-indigo-950/80 to-indigo-900/40" />
         <div className="relative z-10 flex flex-col justify-between p-12 text-white">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-indigo-600 grid place-items-center">
-              <School className="h-6 w-6" />
+            <div className="h-14 w-14 rounded-xl bg-white grid place-items-center overflow-hidden">
+              <img src="/logo.png" alt="Logo CSJGL" className="h-12 w-12 object-contain" />
             </div>
             <div>
-              <div className="font-display text-2xl font-extrabold">ScolarEtat</div>
-              <div className="text-xs text-indigo-200 uppercase tracking-widest">Gestion Scolaire d'État</div>
+              <div className="font-display text-2xl font-extrabold">C.S.J.G.L</div>
+              <div className="text-xs text-indigo-200 uppercase tracking-widest">École Privée Agréée</div>
             </div>
           </div>
           <div>
             <h2 className="font-display text-4xl font-bold leading-tight mb-4">
-              L'excellence administrative<br />au service de l'éducation.
+              Complexe Scolaire<br />St. Joseph du Grand Lac
             </h2>
             <p className="text-indigo-200 max-w-md">
-              Inscriptions, finances, cotations et bulletins officiels — un système unique
-              pour l'Administrateur, le Comptable et l'Enseignant.
+              Kamanyola · École privée agréée — Qualité & Formation.<br />
+              Maternel, Primaire, Éducation de base et Humanités.
             </p>
           </div>
-          <p className="text-xs text-indigo-300">Lycée d'État Général Lumumba · Année 2025-2026</p>
+          <p className="text-xs text-indigo-300">Complexe Scolaire St. Joseph du Grand Lac · Kamanyola · Année 2025-2026</p>
         </div>
       </div>
 
@@ -73,10 +72,11 @@ export default function Login() {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl shadow-2xl p-8">
             <div className="lg:hidden flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-indigo-600 grid place-items-center">
-                <School className="h-5 w-5 text-white" />
-              </div>
-              <span className="font-display text-xl font-extrabold text-slate-900">ScolarEtat</span>
+              <img src="/logo.png" alt="Logo CSJGL" className="h-12 w-12 object-contain rounded-lg" />
+              <span className="font-display text-xl font-extrabold text-slate-900">C.S.J.G.L Kamanyola</span>
+            </div>
+            <div className="hidden lg:flex justify-center mb-4">
+              <img src="/logo.png" alt="Logo CSJGL" className="h-24 object-contain" data-testid="login-logo" />
             </div>
             <h1 className="font-display text-2xl font-bold text-slate-900">Connexion</h1>
             <p className="text-sm text-slate-500 mt-1 mb-6">Choisissez votre espace de travail.</p>

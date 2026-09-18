@@ -916,87 +916,26 @@ async def seed():
     await ensure_user(os.environ["COMPTABLE_EMAIL"], os.environ["COMPTABLE_PASSWORD"], "Comptable Principal", "comptable")
     prof_id = await ensure_user(os.environ["ENSEIGNANT_EMAIL"], os.environ["ENSEIGNANT_PASSWORD"], "Prof. Kabongo Jean",
                                 "enseignant", access_code=os.environ["ENSEIGNANT_ACCESS_CODE"], salaire=450.0)
-    return  # système vierge : aucune donnée de démonstration
+    await seed_classes()
+    return  # aucune autre donnée de démonstration
 
-    classes_def = [
-        {"name": "6ème Humanités", "section": "Pédagogique", "niveau": "Humanités", "frais_inscription": 30, "frais_t1": 50, "frais_t2": 50, "frais_t3": 50},
-        {"name": "5ème Secondaire", "section": "Scientifique", "niveau": "Secondaire", "frais_inscription": 35, "frais_t1": 60, "frais_t2": 60, "frais_t3": 60},
-        {"name": "4ème Secondaire", "section": "Littéraire", "niveau": "Secondaire", "frais_inscription": 30, "frais_t1": 55, "frais_t2": 55, "frais_t3": 55},
-    ]
-    class_ids = []
-    for c in classes_def:
-        c["created_at"] = now_iso()
-        r = await db.classes.insert_one(c)
-        class_ids.append(str(r.inserted_id))
 
-    noms = [
-        ("Ilunga", "Kabeya", "Michel", "M"), ("Tshisekedi", "Mbuyi", "Grace", "F"),
-        ("Mukendi", "Kalala", "Patrick", "M"), ("Nsimba", "Lukusa", "Deborah", "F"),
-        ("Mbayo", "Kasongo", "Emmanuel", "M"), ("Kanku", "Mwanza", "Esther", "F"),
-        ("Lumbala", "Ngoyi", "David", "M"), ("Beya", "Tshibangu", "Sarah", "F"),
-        ("Mutombo", "Kapend", "Joseph", "M"), ("Ngalula", "Mujinga", "Rachel", "F"),
-    ]
-    student_ids = []
-    for i, (nom, postnom, prenom, genre) in enumerate(noms):
-        cid = class_ids[i % len(class_ids)]
-        doc = {
-            "matricule": f"MAT-2025-{i+1:04d}", "nom": nom, "postnom": postnom, "prenom": prenom,
-            "genre": genre, "date_naissance": f"20{10+i%6:02d}-0{(i%9)+1}-15", "class_id": cid,
-            "tuteur_nom": f"Mr/Mme {nom}", "tuteur_contact": f"+243 81 000 {1000+i}",
-            "status": "inscrit" if i % 3 else "actif", "created_at": now_iso(), "year": "2025-2026",
-        }
-        r = await db.students.insert_one(doc)
-        student_ids.append((str(r.inserted_id), cid))
-
-    # some payments (partial + full)
-    pay_count = 0
-    for i, (sid, cid) in enumerate(student_ids[:7]):
-        cls = await db.classes.find_one({"_id": oid(cid)})
-        allocs = [{"category": "inscription", "amount": cls["frais_inscription"]}]
-        if i % 2 == 0:
-            allocs.append({"category": "t1", "amount": cls["frais_t1"]})
-        pay_count += 1
-        await db.payments.insert_one({
-            "student_id": sid, "receipt_no": f"QUIT-2025-{pay_count:05d}", "date": now_iso(),
-            "total_amount": sum(a["amount"] for a in allocs), "allocations": allocs,
-            "note": "Versement initial", "recorded_by": "Comptable Principal",
-        })
-
-    # expenses
-    for cat, amt, desc in [("Salaires profs", 850, "Honoraires T1"), ("Matériel", 200, "Craies et cahiers"),
-                           ("Entretien", 120, "Réparation toiture"), ("Frais admin", 90, "Fournitures bureau")]:
-        await db.expenses.insert_one({"category": cat, "amount": amt, "description": desc, "date": now_iso(), "recorded_by": "Comptable Principal"})
-
-    # subjects for teacher (prof_id) on classes 0 and 1
-    subj_defs = [
-        ("Mathématiques", class_ids[0], 4), ("Français", class_ids[0], 3),
-        ("Physique", class_ids[1], 4), ("Chimie", class_ids[1], 3),
-    ]
-    subject_ids = []
-    for name, cid, coef in subj_defs:
-        r = await db.subjects.insert_one({"name": name, "class_id": cid, "teacher_id": prof_id, "coefficient": coef, "created_at": now_iso()})
-        subject_ids.append((str(r.inserted_id), cid))
-
-    # evaluations + grades on first subject (Mathématiques)
-    import random
-    for subj_id, cid in subject_ids:
-        cls_students = await db.students.find({"class_id": cid}).to_list(100)
-        for etype, title, nmax, coef in [("Interrogation", "Interro 1", 10, 1), ("Devoir", "Devoir 1", 20, 2), ("Examen", "Examen T1", 40, 3)]:
-            er = await db.evaluations.insert_one({
-                "subject_id": subj_id, "type": etype, "title": title, "note_max": nmax,
-                "coefficient": coef, "trimestre": 1, "date": now_iso(), "teacher_id": prof_id,
-            })
-            for st in cls_students:
-                await db.grades.insert_one({
-                    "evaluation_id": str(er.inserted_id), "student_id": str(st["_id"]),
-                    "value": round(random.uniform(0.5, 1.0) * nmax, 1), "updated_at": now_iso(),
-                })
-
-    # reclamations
-    await db.reclamations.insert_one({"student_id": student_ids[0][0], "sujet": "Erreur sur bulletin", "message": "Moyenne de maths incorrecte", "priorite": "haute", "status": "ouverte", "date": now_iso(), "created_by": "Comptable Principal"})
-    await db.reclamations.insert_one({"student_id": student_ids[1][0], "sujet": "Retard paiement", "message": "Demande de délai", "priorite": "moyenne", "status": "ouverte", "date": now_iso(), "created_by": "Comptable Principal"})
-
-    logger.info("Seed terminé.")
+async def seed_classes():
+    if await db.classes.count_documents({}) > 0:
+        return
+    fee = {"frais_inscription": 0, "frais_t1": 0, "frais_t2": 0, "frais_t3": 0}
+    defs = []
+    for i in range(1, 4):
+        defs.append({"name": f"{i}{'er' if i == 1 else 'e'} Niveau", "section": "Maternel", "niveau": "Maternel"})
+    for i in range(1, 7):
+        defs.append({"name": f"{i}{'ère' if i == 1 else 'e'} Année", "section": "Primaire", "niveau": "Primaire"})
+    for i in (7, 8):
+        defs.append({"name": f"{i}e Année", "section": "Éducation de base", "niveau": "Éducation de base"})
+    for opt in ["Pédagogie générale", "Technique sociale", "Commerciale de Gestion", "Électricité", "Agronomie"]:
+        for i in range(1, 5):
+            defs.append({"name": f"{i}{'ère' if i == 1 else 'e'} Humanités", "section": opt, "niveau": "Humanités"})
+    for c in defs:
+        await db.classes.insert_one({**c, **fee, "created_at": now_iso()})
 
 
 @app.on_event("startup")

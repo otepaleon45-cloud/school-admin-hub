@@ -48,3 +48,7 @@ users, classes, students, payments, expenses, subjects, evaluations, grades, rec
 ## 2026-06 — Page de connexion simplifiée
 - Trois boutons uniquement (Administrateur, Comptable, Enseignant). Admin et Enseignant demandent un code à 4 chiffres ; Comptable entre directement.
 - Backend: POST /api/auth/role-login ; ADMIN_ACCESS_CODE ajouté au .env.
+
+## 2026-06 — Identité école + classes
+- École : Complexe Scolaire St. Joseph du Grand Lac (C.S.J.G.L), Kamanyola, école privée agréée. Logo dans /frontend/public/logo.png (accueil, sidebar, reçus, bulletins).
+- 31 classes créées au démarrage (seed_classes) : Maternel 1er-3e niveau, Primaire 1ère-6e année, Éducation de base 7e-8e, Humanités 1ère-4e × 5 options (Pédagogie générale, Technique sociale, Commerciale de Gestion, Électricité, Agronomie). Frais à 0$ à définir par le comptable.

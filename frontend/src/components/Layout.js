@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard, Users, Wallet, GraduationCap, ShieldCheck, LogOut,
-  Menu, X, School, Receipt, BookOpen, AlertCircle, DollarSign, ArrowLeft,
+  Menu, X, Receipt, BookOpen, AlertCircle, DollarSign, ArrowLeft,
 } from "lucide-react";
 
 const ROLE_META = {
@@ -48,12 +48,12 @@ export default function Layout({ children, title, subtitle }) {
         data-testid="app-sidebar"
       >
         <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-800">
-          <div className="h-9 w-9 rounded-lg bg-indigo-600 grid place-items-center">
-            <School className="h-5 w-5 text-white" />
+          <div className="h-9 w-9 rounded-lg bg-white grid place-items-center overflow-hidden">
+            <img src="/logo.png" alt="Logo" className="h-8 w-8 object-contain" />
           </div>
           <div className="leading-tight">
-            <div className="font-display font-extrabold text-white text-lg">ScolarEtat</div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider">Lycée d'État Lumumba</div>
+            <div className="font-display font-extrabold text-white text-lg">C.S.J.G.L</div>
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider">C.S.J.G.L Kamanyola</div>
           </div>
         </div>
 
