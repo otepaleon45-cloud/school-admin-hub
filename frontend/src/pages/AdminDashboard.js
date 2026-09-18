@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useTab } from "@/hooks/useTab";
 import Layout from "@/components/Layout";
 import StatCard from "@/components/StatCard";
 import BulletinModal from "@/components/BulletinModal";
@@ -20,7 +21,7 @@ const TABS = [
 ];
 
 export default function AdminDashboard() {
-  const [tab, setTab] = useState("vue");
+  const [tab, setTab] = useTab("vue");
   const [stats, setStats] = useState(null);
   const [bulletin, setBulletin] = useState(null);
 

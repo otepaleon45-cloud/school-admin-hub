@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useTab } from "@/hooks/useTab";
 import Layout from "@/components/Layout";
 import BulletinModal from "@/components/BulletinModal";
 import api, { formatApiError } from "@/lib/api";
@@ -18,7 +19,7 @@ const TABS = [
 const MENTION_COLOR = (m) => m >= 10 ? "text-emerald-700 bg-emerald-50" : "text-rose-600 bg-rose-50";
 
 export default function EnseignantDashboard() {
-  const [tab, setTab] = useState("classes");
+  const [tab, setTab] = useTab("classes");
   const [myClasses, setMyClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [trimestre, setTrimestre] = useState(1);

@@ -36,3 +36,7 @@ users, classes, students, payments, expenses, subjects, evaluations, grades, rec
 ## Notes techniques (dette)
 - Dashboards recalculent séquentiellement (O(N)); à optimiser via agrégation à grande échelle.
 - Migrer `@app.on_event` vers lifespan handlers (FastAPI récent).
+
+## 2026-06 — Bouton Retour
+- Bouton « Retour » (data-testid btn-back) dans l en-tête de chaque page (Layout.js), revient à l onglet/page précédent via l historique.
+- Onglets synchronisés avec l URL (?tab=...) via hooks/useTab.js.

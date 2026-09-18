@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useTab } from "@/hooks/useTab";
 import Layout from "@/components/Layout";
 import StatCard from "@/components/StatCard";
 import ReceiptModal from "@/components/ReceiptModal";
@@ -28,7 +29,7 @@ const TABS = [
 ];
 
 export default function ComptableDashboard() {
-  const [tab, setTab] = useState("vue");
+  const [tab, setTab] = useTab("vue");
   const [stats, setStats] = useState(null);
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);

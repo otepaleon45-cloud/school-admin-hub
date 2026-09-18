@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import {
   LayoutDashboard, Users, Wallet, GraduationCap, ShieldCheck, LogOut,
-  Menu, X, School, Receipt, BookOpen, AlertCircle, DollarSign,
+  Menu, X, School, Receipt, BookOpen, AlertCircle, DollarSign, ArrowLeft,
 } from "lucide-react";
 
 const ROLE_META = {
@@ -104,6 +104,14 @@ export default function Layout({ children, title, subtitle }) {
         <header className="h-16 sticky top-0 z-20 bg-white/95 backdrop-blur-md border-b border-slate-200 flex items-center gap-4 px-4 sm:px-6">
           <button className="lg:hidden" onClick={() => setOpen(true)} data-testid="btn-open-sidebar">
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+          <button
+            onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))}
+            data-testid="btn-back"
+            title="Retour"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition-colors shrink-0"
+          >
+            <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Retour</span>
           </button>
           <div className="min-w-0">
             <h1 className="font-display font-bold text-lg sm:text-xl text-slate-900 truncate">{title}</h1>
