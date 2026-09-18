@@ -295,9 +295,60 @@ async def update_user(user_id: str, body: UserUpdate, user: dict = Depends(requi
 
 
 @api_router.delete("/users/{user_id}")
-async def delete_user(user_id: str, user: dict = Depends(require_roles("admin"))):
+async def delete_user(user_id: str, user: dict = Depends(require_roles("admin", "comptable"))):
+    target = await db.users.find_one({"_id": oid(user_id)})
+    if not target:
+        raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    if target["role"] == "admin":
+        raise HTTPException(status_code=400, detail="Impossible de supprimer un administrateur")
+    if user["role"] == "comptable" and target["role"] != "enseignant":
+        raise HTTPException(status_code=403, detail="Le comptable ne peut supprimer que des enseignants")
     await db.users.delete_one({"_id": oid(user_id)})
+    await db.teacher_payments.delete_many({"teacher_id": user_id})
     return {"ok": True}
+
+
+class TeacherCreate(BaseModel):
+    name: str
+    email: Optional[str] = None
+    access_code: str
+    salaire: float = 0.0
+    periode: str = "mois"  # mois | trimestre
+    telephone: Optional[str] = None
+
+
+MOIS_PAR_AN = 10  # année scolaire septembre → juin
+
+
+@api_router.get("/teachers")
+async def list_teachers(user: dict = Depends(require_roles("admin", "comptable"))):
+    docs = await db.users.find({"role": "enseignant"}).to_list(1000)
+    return [clean(d) for d in docs]
+
+
+@api_router.post("/teachers")
+async def create_teacher(body: TeacherCreate, user: dict = Depends(require_roles("admin", "comptable"))):
+    code = body.access_code.strip()
+    if len(code) != 4 or not code.isdigit():
+        raise HTTPException(status_code=400, detail="Le code d'accès doit contenir 4 chiffres")
+    if await db.users.find_one({"access_code": code}):
+        raise HTTPException(status_code=400, detail="Ce code est déjà utilisé par un autre compte")
+    if body.periode not in ("mois", "trimestre"):
+        raise HTTPException(status_code=400, detail="Période invalide")
+    count = await db.users.count_documents({"role": "enseignant"})
+    email = (body.email or f"prof{count + 1:03d}@csjgl.cd").strip().lower()
+    if await db.users.find_one({"email": email}):
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+    salaire_trim = body.salaire * 3 if body.periode == "mois" else body.salaire
+    doc = {
+        "name": body.name, "email": email, "password_hash": hash_password(code),
+        "role": "enseignant", "access_code": code, "telephone": body.telephone,
+        "salaire": body.salaire, "periode": body.periode,
+        "salaire_trimestre": salaire_trim, "created_at": now_iso(),
+    }
+    res = await db.users.insert_one(doc)
+    doc["_id"] = res.inserted_id
+    return clean(doc)
 
 
 # ---------------------------------------------------------------------------
@@ -431,6 +482,16 @@ async def update_student(student_id: str, body: StudentCreate, user: dict = Depe
 @api_router.post("/students/{student_id}/status")
 async def set_status(student_id: str, payload: dict, user: dict = Depends(require_roles("admin", "comptable"))):
     await db.students.update_one({"_id": oid(student_id)}, {"$set": {"status": payload.get("status", "inscrit")}})
+    return {"ok": True}
+
+
+@api_router.delete("/students/{student_id}")
+async def delete_student(student_id: str, user: dict = Depends(require_roles("admin", "comptable"))):
+    res = await db.students.delete_one({"_id": oid(student_id)})
+    if res.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Élève introuvable")
+    await db.payments.delete_many({"student_id": student_id})
+    await db.grades.delete_many({"student_id": student_id})
     return {"ok": True}
 
 
@@ -807,14 +868,18 @@ async def inventory(user: dict = Depends(require_roles("admin"))):
     total_due = 0.0
     total_paid = 0.0
     for t in teachers:
+        periode = t.get("periode", "trimestre")
+        salaire_base = float(t.get("salaire", t.get("salaire_trimestre", 0)) or 0)
         salaire = float(t.get("salaire_trimestre", 0) or 0)
-        due_annuel = salaire * 3
+        due_annuel = salaire_base * MOIS_PAR_AN if periode == "mois" else salaire * 3
         paid = 0.0
         for tp in await db.teacher_payments.find({"teacher_id": str(t["_id"])}).to_list(1000):
             paid += float(tp.get("amount", 0))
         rows.append({
             "teacher_id": str(t["_id"]),
             "name": t["name"],
+            "salaire": salaire_base,
+            "periode": periode,
             "salaire_trimestre": salaire,
             "du_annuel": round(due_annuel, 2),
             "paye": round(paid, 2),

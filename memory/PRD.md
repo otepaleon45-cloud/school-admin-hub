@@ -58,3 +58,8 @@ users, classes, students, payments, expenses, subjects, evaluations, grades, rec
 - Guichet et tableau admin : détail des paiements (nom élève + montant par rubrique). Admin dashboard renvoie derniers_paiements.
 - Admin : édition des comptes (PUT /api/users/{id}) — nom, code 4 chiffres (unique), salaire, mot de passe.
 - Admin : onglet « Paramètres » (GET/PUT /api/settings) — nom école, sigle, ville, année scolaire, liste des options. Utilisé par Layout, reçus, bulletins (hooks/useSettings.js).
+
+## 2026-06 — Suppressions + enseignants (comptable)
+- DELETE /api/students/{id} (admin, comptable) : supprime élève + paiements + cotes. Bouton 🗑 dans la liste des élèves.
+- DELETE /api/users/{id} : admin (non-admin) ou comptable (enseignants seulement). Bouton 🗑 dans l inventaire admin et onglet Enseignants.
+- Comptable → onglet « Enseignants » : GET/POST /api/teachers (nom, tél, code 4 chiffres, salaire, période mois|trimestre). Dû annuel = salaire×10 mois ou ×3 trimestres.

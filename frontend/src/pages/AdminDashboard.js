@@ -129,19 +129,21 @@ function InventoryPanel({ reloadStats }) {
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
-            <tr><th className="text-left px-4 py-3">Enseignant</th><th className="text-right px-4 py-3">Salaire/trim.</th><th className="text-right px-4 py-3">Dû annuel</th><th className="text-right px-4 py-3">Payé</th><th className="text-right px-4 py-3">Reste</th><th className="text-right px-4 py-3">Action</th></tr>
+            <tr><th className="text-left px-4 py-3">Enseignant</th><th className="text-right px-4 py-3">Salaire</th><th className="text-right px-4 py-3">Dû annuel</th><th className="text-right px-4 py-3">Payé</th><th className="text-right px-4 py-3">Reste</th><th className="text-right px-4 py-3">Action</th></tr>
           </thead>
           <tbody>
             {inv.rows.map((r) => (
               <tr key={r.teacher_id} className="border-t border-slate-100">
                 <td className="px-4 py-3 font-medium text-slate-800">{r.name}</td>
-                <td className="px-4 py-3 text-right font-mono text-slate-600">{money(r.salaire_trimestre)}</td>
+                <td className="px-4 py-3 text-right font-mono text-slate-600">{money(r.salaire ?? r.salaire_trimestre)} <span className="text-xs text-slate-400">/ {r.periode === "mois" ? "mois" : "trim."}</span></td>
                 <td className="px-4 py-3 text-right font-mono text-slate-600">{money(r.du_annuel)}</td>
                 <td className="px-4 py-3 text-right font-mono text-emerald-700">{money(r.paye)}</td>
                 <td className={`px-4 py-3 text-right font-mono font-semibold ${r.reste > 0 ? "text-rose-600" : "text-emerald-600"}`}>{money(r.reste)}</td>
-                <td className="px-4 py-3 text-right"><button onClick={() => setPayFor(r)} data-testid={`btn-pay-teacher-${r.teacher_id}`} className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-md text-xs font-semibold"><DollarSign className="h-3.5 w-3.5" /> Payer</button></td>
+                <td className="px-4 py-3 text-right whitespace-nowrap"><button onClick={() => setPayFor(r)} data-testid={`btn-pay-teacher-${r.teacher_id}`} className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-md text-xs font-semibold"><DollarSign className="h-3.5 w-3.5" /> Payer</button>
+                  <button onClick={async () => { if (!window.confirm(`Supprimer l'enseignant ${r.name} ?`)) return; try { await api.delete(`/users/${r.teacher_id}`); toast.success("Enseignant supprimé"); load(); reloadStats(); } catch (e) { toast.error(formatApiError(e.response?.data?.detail)); } }} data-testid={`btn-delete-teacher-${r.teacher_id}`} className="ml-2 text-slate-400 hover:text-rose-600 align-middle" title="Supprimer"><Trash2 className="h-4 w-4 inline" /></button></td>
               </tr>
             ))}
+            {inv.rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Aucun enseignant enregistré</td></tr>}
           </tbody>
         </table>
       </div>

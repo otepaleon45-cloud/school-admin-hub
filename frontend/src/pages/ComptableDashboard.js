@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import StatCard from "@/components/StatCard";
 import ReceiptModal from "@/components/ReceiptModal";
 import ClassFeesPanel from "@/components/ClassFeesPanel";
+import TeachersPanel from "@/components/TeachersPanel";
 import api, { money, formatApiError } from "@/lib/api";
 import { toast } from "sonner";
 import {
@@ -28,6 +29,7 @@ const TABS = [
   { key: "guichet", label: "Guichet & Reçus" },
   { key: "depenses", label: "Recettes & Dépenses" },
   { key: "frais", label: "Frais par classe" },
+  { key: "enseignants", label: "Enseignants" },
 ];
 
 const FEE_LABEL = { inscription: "Inscription", t1: "T1", t2: "T2", t3: "T3" };
@@ -99,7 +101,11 @@ export default function ComptableDashboard() {
               <UserPlus className="h-4 w-4" /> Ajouter un élève
             </button>
           </div>
-          <StudentsTable students={students} className={className} onPay={setPayStudent} statusBadge />
+          <StudentsTable students={students} className={className} onPay={setPayStudent} onDelete={async (s) => {
+            if (!window.confirm(`Supprimer l'élève ${s.nom} ${s.postnom || ""} ? Ses paiements seront aussi supprimés.`)) return;
+            try { await api.delete(`/students/${s.id}`); toast.success("Élève supprimé"); load(); }
+            catch (e) { toast.error(formatApiError(e.response?.data?.detail)); }
+          }} statusBadge />
         </div>
       )}
 
@@ -147,6 +153,7 @@ export default function ComptableDashboard() {
       )}
 
       {tab === "frais" && <ClassFeesPanel classes={classes} reload={load} />}
+      {tab === "enseignants" && <TeachersPanel />}
 
       <AddStudentDialog open={addOpen} onClose={() => setAddOpen(false)} classes={classes} onSaved={load} />
       <PaymentDialog student={payStudent} feeCats={feeCats} onClose={() => setPayStudent(null)} onPaid={(r) => { setReceipt(r); load(); }} />
@@ -164,7 +171,7 @@ async function openReceipt(id, setReceipt) {
   }
 }
 
-export function StudentsTable({ students, className, onPay, statusBadge }) {
+export function StudentsTable({ students, className, onPay, onDelete, statusBadge }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
       <table className="w-full text-sm">
@@ -189,10 +196,11 @@ export function StudentsTable({ students, className, onPay, statusBadge }) {
               </td>
               <td className={`px-4 py-3 text-right font-mono ${s.ledger?.dette > 0 ? "text-rose-600 font-semibold" : "text-emerald-600"}`}>{money(s.ledger?.dette)}</td>
               {onPay && (
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-right whitespace-nowrap">
                   <button onClick={() => onPay(s)} data-testid={`btn-pay-${s.id}`} className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-md text-xs font-semibold">
                     <DollarSign className="h-3.5 w-3.5" /> Encaisser
                   </button>
+                  {onDelete && <button onClick={() => onDelete(s)} data-testid={`btn-delete-student-${s.id}`} className="ml-2 text-slate-400 hover:text-rose-600 align-middle" title="Supprimer"><Trash2 className="h-4 w-4 inline" /></button>}
                 </td>
               )}
             </tr>
