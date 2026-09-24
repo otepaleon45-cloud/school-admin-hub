@@ -312,6 +312,7 @@ function PaymentDialog({ student, onClose, onPaid, taux }) {
         <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
           {(ledger?.mois || []).map((m) => {
             const reste = resteInCur(m.reste);
+            const solder = currency === "FC" ? Math.ceil(m.reste * taux) : reste;
             return (
               <div key={m.key} className="flex items-center gap-2">
                 <div className="flex-1 min-w-0">
@@ -325,7 +326,7 @@ function PaymentDialog({ student, onClose, onPaid, taux }) {
                 <input type="number" min="0" placeholder="0" className="fld w-24 text-right font-mono"
                   value={alloc[m.key] || ""} data-testid={`input-alloc-${m.key}`}
                   onChange={(e) => setAlloc((a) => ({ ...a, [m.key]: e.target.value }))} />
-                <button type="button" onClick={() => setAlloc((a) => ({ ...a, [m.key]: reste || "" }))} disabled={reste <= 0}
+                <button type="button" onClick={() => setAlloc((a) => ({ ...a, [m.key]: solder || "" }))} disabled={reste <= 0}
                   data-testid={`btn-solder-${m.key}`} className="text-[11px] text-emerald-700 hover:underline disabled:opacity-30 disabled:no-underline whitespace-nowrap">Solder</button>
               </div>
             );

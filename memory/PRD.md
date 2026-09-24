@@ -63,3 +63,13 @@ users, classes, students, payments, expenses, subjects, evaluations, grades, rec
 - DELETE /api/students/{id} (admin, comptable) : supprime élève + paiements + cotes. Bouton 🗑 dans la liste des élèves.
 - DELETE /api/users/{id} : admin (non-admin) ou comptable (enseignants seulement). Bouton 🗑 dans l inventaire admin et onglet Enseignants.
 - Comptable → onglet « Enseignants » : GET/POST /api/teachers (nom, tél, code 4 chiffres, salaire, période mois|trimestre). Dû annuel = salaire×10 mois ou ×3 trimestres.
+
+## 2026-06 — Paiement MENSUEL + double devise (USD/FC)
+- Frais élèves passés des 3 trimestres à un FRAIS MENSUEL unique par classe, appliqué sur 10 mois (Sept→Juin). Champ `frais_mensuel` sur les classes (anciens frais_t1/t2/t3/inscription supprimés).
+- Double devise : paiements élèves et dépenses en USD ($) OU FC. Devise de base des frais/dette = USD. Conversion via `taux_change` (FC pour 1 $) réglable dans Admin > Paramètres (défaut 2800).
+- Paiements: POST /api/payments accepte `currency` (USD|FC) + allocations par mois; stocke amount_base (USD) par mois et total_base. Reçu (get_receipt) affiche la devise payée.
+- student_ledger() renvoie `mois` [{key,label,du,paye,reste,status paye/partiel/impaye/na}], `mois_payes`, `mois_impayes`, dette (USD).
+- Comptable: nouvel onglet « Dettes par mois » (pastilles mensuelles colorées + X/10 + dette $/FC), filtre par classe. Guichet: dialog mensuel avec sélecteur devise + bouton « Solder » (arrondi sup. en FC pour couvrir le mois).
+- Enseignants payés par MOIS en FC (champ `devise`, défaut FC). teacher_payments: `mois` + `currency` + amount_base. inventory(): dû annuel = salaire mensuel × 10, suivi mois payés par enseignant, PayTeacherDialog choisit mois + devise + montant.
+- Dashboards: recettes/dépenses agrégées en USD base (total_base/amount_base).
+- Testé bout en bout (testing_agent iteration_2.json): 15/16 assertions UI OK, backend curl OK. Aucun bug fonctionnel. Restent 2 warnings cosmétiques préexistants (Radix DialogDescription, <span> injecté dans <option>).

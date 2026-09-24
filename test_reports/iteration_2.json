@@ -1,0 +1,33 @@
+{
+  "summary": "Refonte trimestres->mensuel + double devise USD/FC testée bout en bout via Playwright. 15/16 assertions UI passent. Backend curl déjà validé par E1 (conversion FC->USD, salaires FC/mois). Flux validés : (1) Login PIN Admin 2025, Comptable direct, (2) Paramètres taux_change=2850 sauvegardé, (3) Frais mensuels 15$ par classe + équivalent FC 42 750 + total annuel $150 / 427 500 FC affichés, (4) Création élève TEST_UI_MONTH, (5) PaymentDialog : Solder Sept USD=$15,00 puis bascule FC=42 750 FC, Encaisser -> ReceiptModal affiché en FC avec bon montant, (6) DebtsPanel : pastille sept verte (emerald-500), compteur 1/10, dette restante en $ ET FC, filtre par classe OK, (7) Ajout enseignant FC 150 000 défaut, (8) InventoryPanel affiche salaire/dû annuel/reste en FC + colonne 'Mois payés 0/10', (9) PayTeacherDialog : select-teacher-month=sept, montant prérempli avec reste, confirmation -> compteur passe 0/10 -> 1/10 et reste décroit de 150 000 FC. Cohérence devise validée : 15$ frais mensuel avec taux 2850 => 42 750 FC solde bien le mois de septembre en 'payé'.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      { "screen": "Toutes Dialog (payment, add-student, add-teacher, pay-teacher, edit-user, receipt, bulletin)", "issues": ["Console warning Radix: 'Missing Description or aria-describedby={undefined} for DialogContent'. Ajouter <DialogDescription> ou aria-describedby pour a11y (déjà signalé itération 1)."] },
+      { "screen": "ComptableDashboard DebtsPanel select-debts-class + AdminDashboard select-class-filter", "issues": ["React hydration error: <span> ne peut être enfant de <option>. Le visual editor injecte un <span x-excluded='true' style={display:contents}> autour du texte dans les <option> dynamiques (déjà signalé itération 1). N'a pas d'impact fonctionnel mais pollue la console avec des erreurs."] }
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/backend_test.py"],
+  "action_items": [
+    "(Low, cosmétique) Ajouter DialogDescription (ou VisuallyHidden) à toutes les DialogContent pour supprimer les warnings Radix a11y.",
+    "(Low, cosmétique) Corriger le rendu <option>{c.name} {c.section}</option> pour éviter le <span> injecté par le visual editor — envelopper la concat dans une variable/template littéral ou utiliser une fonction pure retournant une string unique."
+  ],
+  "critical_code_review_comments": [
+    "server.py > 1200 lignes : à découper (ledger, payments, teachers, results, users) pour maintenabilité.",
+    "student_ledger() est appelé en boucle depuis /students, /dashboard/*, /debts — potentiel N+1 sur classes et sur payments. Ajouter un lookup batch ou cache par requête.",
+    "PaymentDialog.resteInCur() convertit du reste USD -> FC côté frontend avec Math.round ; le backend recalcule via to_base (division exacte). Léger risque de sous-paiement d'1 FC lorsque l'utilisateur clique 'Solder' en FC (arrondi entier). Envisager un tampon d'arrondi (+1 FC) ou renvoyer le reste FC exact par le backend pour éviter que le mois reste 'partiel'.",
+    "TeacherPayment dialog n'affiche/ne convertit pas explicitement le montant si l'utilisateur bascule la devise (garde le nombre saisi) — pas de recalcul automatique du reste dans la nouvelle devise.",
+    "PaymentDialog n'affiche pas d'avertissement quand aucun frais n'est défini pour la classe (uniquement un texte discret) — pourrait être plus visible (banner).",
+    "ExpensesPanel dépense en FC : le sous-titre 'Recettes / Dépenses (converti en $)' n'indique pas clairement que la conversion utilise le taux courant — pourrait afficher le taux appliqué."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "100% (curl E1)", "frontend": "94% (15/16 assertions, 1 faux-négatif d'assertion string sur espace insécable dans '5\u202f000 FC')" },
+  "test_credentials": "Admin PIN 2025 · Enseignant PIN 1234 · Comptable accès direct",
+  "seed_data_creation": "Aucune donnée seed créée en dehors des tests. Élève TEST_UI_MONTH et enseignant TEST_UI_Prof supprimés en fin de test.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Tests Playwright UI couvrent : PIN login, taux_change, frais mensuels, PaymentDialog USD/FC + Solder, ReceiptModal FC, DebtsPanel pastilles + 1/10, ExpensesPanel FC/USD, TeachersPanel FC, InventoryPanel + PayTeacherDialog mois. Seuls warnings a11y Radix et hydration <option><span> restent (préexistants itération 1). Backend endpoints monthly/currency déjà validés en curl par E1.",
+  "rca of the issue": "Aucun bug fonctionnel détecté. L'assertion 'expense_fc_created' a échoué uniquement parce que le montant '5000' est rendu comme '5\u202f000 FC' (narrow-no-break-space fr locale) alors que le test cherchait espace normal ou nbsp — non-issue."
+}
