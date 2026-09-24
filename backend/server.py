@@ -127,10 +127,7 @@ class ClassCreate(BaseModel):
     name: str
     section: str
     niveau: str = ""
-    frais_inscription: float = 0.0
-    frais_t1: float = 0.0
-    frais_t2: float = 0.0
-    frais_t3: float = 0.0
+    frais_mensuel: float = 0.0
 
 
 class StudentCreate(BaseModel):
@@ -148,13 +145,15 @@ class StudentCreate(BaseModel):
 
 class PaymentBody(BaseModel):
     student_id: str
-    allocations: List[dict]  # [{category, amount}]
+    allocations: List[dict]  # [{category(mois), amount}]
+    currency: str = "USD"  # USD | FC
     note: str = ""
 
 
 class ExpenseCreate(BaseModel):
     category: str
     amount: float
+    currency: str = "USD"  # USD | FC
     description: str = ""
     date: Optional[str] = None
 
@@ -191,7 +190,8 @@ class ReclamationCreate(BaseModel):
 class TeacherPaymentBody(BaseModel):
     teacher_id: str
     amount: float
-    trimestre: int = 1
+    mois: str = ""
+    currency: str = "FC"  # USD | FC
     note: str = ""
 
 
@@ -313,11 +313,38 @@ class TeacherCreate(BaseModel):
     email: Optional[str] = None
     access_code: str
     salaire: float = 0.0
-    periode: str = "mois"  # mois | trimestre
+    devise: str = "FC"  # USD | FC — salaire payé par mois
     telephone: Optional[str] = None
 
 
 MOIS_PAR_AN = 10  # année scolaire septembre → juin
+MONTHS = [
+    ("sept", "Septembre"), ("oct", "Octobre"), ("nov", "Novembre"), ("dec", "Décembre"),
+    ("jan", "Janvier"), ("fev", "Février"), ("mars", "Mars"), ("avr", "Avril"),
+    ("mai", "Mai"), ("juin", "Juin"),
+]
+MONTH_KEYS = [k for k, _ in MONTHS]
+MONTH_LABELS = {k: l for k, l in MONTHS}
+
+
+async def get_taux() -> float:
+    """Taux de change : nombre de FC pour 1 USD."""
+    s = await db.settings.find_one({"_id": "main"})
+    try:
+        return float((s or {}).get("taux_change", 2800)) or 2800.0
+    except Exception:
+        return 2800.0
+
+
+def to_base(amount: float, currency: str, base: str, taux: float) -> float:
+    """Convertit un montant (currency) vers la devise `base`. taux = FC pour 1 USD."""
+    if currency == base:
+        return amount
+    if currency == "USD" and base == "FC":
+        return amount * taux
+    if currency == "FC" and base == "USD":
+        return amount / taux if taux else 0.0
+    return amount
 
 
 @api_router.get("/teachers")
@@ -333,17 +360,16 @@ async def create_teacher(body: TeacherCreate, user: dict = Depends(require_roles
         raise HTTPException(status_code=400, detail="Le code d'accès doit contenir 4 chiffres")
     if await db.users.find_one({"access_code": code}):
         raise HTTPException(status_code=400, detail="Ce code est déjà utilisé par un autre compte")
-    if body.periode not in ("mois", "trimestre"):
-        raise HTTPException(status_code=400, detail="Période invalide")
     count = await db.users.count_documents({"role": "enseignant"})
     email = (body.email or f"prof{count + 1:03d}@csjgl.cd").strip().lower()
     if await db.users.find_one({"email": email}):
         raise HTTPException(status_code=400, detail="Email déjà utilisé")
-    salaire_trim = body.salaire * 3 if body.periode == "mois" else body.salaire
+    salaire_trim = body.salaire  # legacy field, salaire mensuel de référence
+    devise = body.devise if body.devise in ("USD", "FC") else "FC"
     doc = {
         "name": body.name, "email": email, "password_hash": hash_password(code),
         "role": "enseignant", "access_code": code, "telephone": body.telephone,
-        "salaire": body.salaire, "periode": body.periode,
+        "salaire": body.salaire, "periode": "mois", "devise": devise,
         "salaire_trimestre": salaire_trim, "created_at": now_iso(),
     }
     res = await db.users.insert_one(doc)
@@ -392,38 +418,38 @@ async def delete_class(class_id: str, user: dict = Depends(require_roles("admin"
 # ---------------------------------------------------------------------------
 # Students + fee helpers
 # ---------------------------------------------------------------------------
-FEE_CATEGORIES = ["inscription", "t1", "t2", "t3"]
-FEE_LABELS = {
-    "inscription": "Frais d'inscription",
-    "t1": "Frais scolaires T1",
-    "t2": "Frais scolaires T2",
-    "t3": "Frais scolaires T3",
-}
+FEE_CATEGORIES = MONTH_KEYS
+FEE_LABELS = {k: f"Frais {l}" for k, l in MONTHS}
 
 
 async def student_ledger(student: dict) -> dict:
     cls = await db.classes.find_one({"_id": oid(student["class_id"])}) if student.get("class_id") else None
-    fees = {
-        "inscription": cls.get("frais_inscription", 0) if cls else 0,
-        "t1": cls.get("frais_t1", 0) if cls else 0,
-        "t2": cls.get("frais_t2", 0) if cls else 0,
-        "t3": cls.get("frais_t3", 0) if cls else 0,
-    }
-    paid = {c: 0.0 for c in FEE_CATEGORIES}
+    frais = float(cls.get("frais_mensuel", 0) if cls else 0)
+    base = "USD"
+    paid = {k: 0.0 for k in MONTH_KEYS}
     payments = await db.payments.find({"student_id": str(student["_id"])}).to_list(1000)
     for p in payments:
         for a in p.get("allocations", []):
-            if a["category"] in paid:
-                paid[a["category"]] += float(a["amount"])
-    total_due = sum(fees.values())
-    total_paid = sum(paid.values())
+            if a.get("category") in paid:
+                paid[a["category"]] += float(a.get("amount_base", a.get("amount", 0)))
+    mois = []
+    for k in MONTH_KEYS:
+        du = frais
+        pay = round(paid[k], 2)
+        reste = round(du - pay, 2)
+        status = "na" if du <= 0 else ("paye" if pay >= du - 0.001 else ("partiel" if pay > 0 else "impaye"))
+        mois.append({"key": k, "label": MONTH_LABELS[k], "du": round(du, 2), "paye": pay, "reste": max(reste, 0), "status": status})
+    total_du = frais * MOIS_PAR_AN
+    total_paye = round(sum(paid.values()), 2)
     return {
-        "fees": fees,
-        "paid": paid,
-        "reste": {c: round(fees[c] - paid[c], 2) for c in FEE_CATEGORIES},
-        "total_due": round(total_due, 2),
-        "total_paid": round(total_paid, 2),
-        "dette": round(total_due - total_paid, 2),
+        "frais_mensuel": round(frais, 2),
+        "devise": base,
+        "mois": mois,
+        "mois_payes": sum(1 for m in mois if m["status"] == "paye"),
+        "mois_impayes": sum(1 for m in mois if m["status"] in ("impaye", "partiel")),
+        "total_du": round(total_du, 2),
+        "total_paye": total_paye,
+        "dette": round(total_du - total_paye, 2),
     }
 
 
@@ -500,7 +526,7 @@ async def delete_student(student_id: str, user: dict = Depends(require_roles("ad
 # ---------------------------------------------------------------------------
 @api_router.get("/fee-categories")
 async def fee_categories(user: dict = Depends(get_current_user)):
-    return [{"key": k, "label": FEE_LABELS[k]} for k in FEE_CATEGORIES]
+    return [{"key": k, "label": MONTH_LABELS[k]} for k in MONTH_KEYS]
 
 
 @api_router.post("/payments")
@@ -508,17 +534,30 @@ async def create_payment(body: PaymentBody, user: dict = Depends(require_roles("
     student = await db.students.find_one({"_id": oid(body.student_id)})
     if not student:
         raise HTTPException(status_code=404, detail="Élève introuvable")
+    currency = body.currency if body.currency in ("USD", "FC") else "USD"
+    taux = await get_taux()
     allocations = [a for a in body.allocations if float(a.get("amount", 0)) > 0]
     if not allocations:
         raise HTTPException(status_code=400, detail="Aucun montant à répartir")
-    total = round(sum(float(a["amount"]) for a in allocations), 2)
+    out_alloc = []
+    total = 0.0
+    total_base = 0.0
+    for a in allocations:
+        amt = round(float(a["amount"]), 2)
+        amt_base = round(to_base(amt, currency, "USD", taux), 2)
+        out_alloc.append({"category": a["category"], "amount": amt, "amount_base": amt_base})
+        total += amt
+        total_base += amt_base
     count = await db.payments.count_documents({})
     doc = {
         "student_id": body.student_id,
         "receipt_no": f"QUIT-{datetime.now().year}-{count + 1:05d}",
         "date": now_iso(),
-        "total_amount": total,
-        "allocations": [{"category": a["category"], "amount": round(float(a["amount"]), 2)} for a in allocations],
+        "currency": currency,
+        "taux": taux,
+        "total_amount": round(total, 2),
+        "total_base": round(total_base, 2),
+        "allocations": out_alloc,
         "note": body.note,
         "recorded_by": user["name"],
     }
@@ -551,7 +590,8 @@ async def get_receipt(payment_id: str, user: dict = Depends(require_roles("admin
     s = await db.students.find_one({"_id": oid(p["student_id"])})
     cls = await db.classes.find_one({"_id": oid(s["class_id"])}) if s and s.get("class_id") else None
     p = clean(p)
-    p["allocations"] = [{"category": a["category"], "label": FEE_LABELS.get(a["category"], a["category"]), "amount": a["amount"]} for a in p["allocations"]]
+    p["currency"] = p.get("currency", "USD")
+    p["allocations"] = [{"category": a["category"], "label": MONTH_LABELS.get(a["category"], a["category"]), "amount": a["amount"]} for a in p["allocations"]]
     p["student"] = clean(s) if s else None
     p["class_name"] = f"{cls['name']} {cls['section']}" if cls else ""
     return p
@@ -569,6 +609,11 @@ async def list_expenses(user: dict = Depends(require_roles("admin", "comptable")
 @api_router.post("/expenses")
 async def create_expense(body: ExpenseCreate, user: dict = Depends(require_roles("admin", "comptable"))):
     doc = body.model_dump()
+    currency = doc.get("currency") if doc.get("currency") in ("USD", "FC") else "USD"
+    taux = await get_taux()
+    doc["currency"] = currency
+    doc["amount"] = round(float(doc.get("amount", 0)), 2)
+    doc["amount_base"] = round(to_base(doc["amount"], currency, "USD", taux), 2)
     doc["date"] = doc.get("date") or now_iso()
     doc["recorded_by"] = user["name"]
     res = await db.expenses.insert_one(doc)
@@ -853,9 +898,23 @@ async def resolve_reclamation(rid: str, user: dict = Depends(require_roles("admi
 # ---------------------------------------------------------------------------
 @api_router.post("/teacher-payments")
 async def pay_teacher(body: TeacherPaymentBody, user: dict = Depends(require_roles("admin"))):
-    doc = body.model_dump()
-    doc["date"] = now_iso()
-    doc["recorded_by"] = user["name"]
+    teacher = await db.users.find_one({"_id": oid(body.teacher_id)})
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Enseignant introuvable")
+    devise = teacher.get("devise", "FC")
+    currency = body.currency if body.currency in ("USD", "FC") else devise
+    taux = await get_taux()
+    amt = round(float(body.amount), 2)
+    doc = {
+        "teacher_id": body.teacher_id,
+        "amount": amt,
+        "currency": currency,
+        "amount_base": round(to_base(amt, currency, devise, taux), 2),
+        "mois": body.mois,
+        "note": body.note,
+        "date": now_iso(),
+        "recorded_by": user["name"],
+    }
     res = await db.teacher_payments.insert_one(doc)
     doc["_id"] = res.inserted_id
     return clean(doc)
@@ -868,22 +927,35 @@ async def inventory(user: dict = Depends(require_roles("admin"))):
     total_due = 0.0
     total_paid = 0.0
     for t in teachers:
-        periode = t.get("periode", "trimestre")
-        salaire_base = float(t.get("salaire", t.get("salaire_trimestre", 0)) or 0)
-        salaire = float(t.get("salaire_trimestre", 0) or 0)
-        due_annuel = salaire_base * MOIS_PAR_AN if periode == "mois" else salaire * 3
+        devise = t.get("devise", "FC")
+        salaire = float(t.get("salaire", t.get("salaire_trimestre", 0)) or 0)
+        due_annuel = salaire * MOIS_PAR_AN
+        paid_by_month = {k: 0.0 for k in MONTH_KEYS}
         paid = 0.0
         for tp in await db.teacher_payments.find({"teacher_id": str(t["_id"])}).to_list(1000):
-            paid += float(tp.get("amount", 0))
+            base = float(tp.get("amount_base", tp.get("amount", 0)))
+            paid += base
+            m = tp.get("mois")
+            if m in paid_by_month:
+                paid_by_month[m] += base
+        mois = []
+        for k in MONTH_KEYS:
+            du = salaire
+            pay = round(paid_by_month[k], 2)
+            status = "na" if du <= 0 else ("paye" if pay >= du - 0.001 else ("partiel" if pay > 0 else "impaye"))
+            mois.append({"key": k, "label": MONTH_LABELS[k], "du": round(du, 2), "paye": pay, "reste": max(round(du - pay, 2), 0), "status": status})
         rows.append({
             "teacher_id": str(t["_id"]),
             "name": t["name"],
-            "salaire": salaire_base,
-            "periode": periode,
-            "salaire_trimestre": salaire,
+            "salaire": round(salaire, 2),
+            "devise": devise,
+            "periode": "mois",
+            "salaire_trimestre": round(salaire, 2),
             "du_annuel": round(due_annuel, 2),
             "paye": round(paid, 2),
             "reste": round(due_annuel - paid, 2),
+            "mois_payes": sum(1 for m in mois if m["status"] == "paye"),
+            "mois": mois,
         })
         total_due += due_annuel
         total_paid += paid
@@ -903,6 +975,7 @@ DEFAULT_SETTINGS = {
     "sigle": "C.S.J.G.L",
     "ville": "Kamanyola",
     "annee_scolaire": "2025-2026",
+    "taux_change": 2800,
     "options": ["Pédagogie générale", "Technique sociale", "Commerciale de Gestion", "Électricité", "Agronomie"],
 }
 
@@ -912,6 +985,7 @@ class SettingsBody(BaseModel):
     sigle: str
     ville: str
     annee_scolaire: str
+    taux_change: float = 2800
     options: List[str]
 
 
@@ -948,10 +1022,10 @@ async def dashboard_admin(user: dict = Depends(require_roles("admin"))):
 
     recettes = 0.0
     for p in await db.payments.find().to_list(5000):
-        recettes += float(p.get("total_amount", 0))
+        recettes += float(p.get("total_base", p.get("total_amount", 0)))
     depenses = 0.0
     for e in await db.expenses.find().to_list(5000):
-        depenses += float(e.get("amount", 0))
+        depenses += float(e.get("amount_base", e.get("amount", 0)))
 
     dettes_eleves = 0.0
     for s in await db.students.find().to_list(5000):
@@ -982,10 +1056,10 @@ async def dashboard_admin(user: dict = Depends(require_roles("admin"))):
 async def dashboard_comptable(user: dict = Depends(require_roles("admin", "comptable"))):
     recettes = 0.0
     for p in await db.payments.find().to_list(5000):
-        recettes += float(p.get("total_amount", 0))
+        recettes += float(p.get("total_base", p.get("total_amount", 0)))
     depenses = 0.0
     for e in await db.expenses.find().to_list(5000):
-        depenses += float(e.get("amount", 0))
+        depenses += float(e.get("amount_base", e.get("amount", 0)))
     dettes = 0.0
     for s in await db.students.find().to_list(5000):
         led = await student_ledger(s)
@@ -1070,7 +1144,7 @@ async def seed():
 async def seed_classes():
     if await db.classes.count_documents({}) > 0:
         return
-    fee = {"frais_inscription": 0, "frais_t1": 0, "frais_t2": 0, "frais_t3": 0}
+    fee = {"frais_mensuel": 0}
     defs = []
     for i in range(1, 4):
         defs.append({"name": f"{i}{'er' if i == 1 else 'e'} Niveau", "section": "Maternel", "niveau": "Maternel"})

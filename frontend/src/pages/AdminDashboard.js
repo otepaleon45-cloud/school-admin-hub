@@ -4,7 +4,7 @@ import Layout from "@/components/Layout";
 import StatCard from "@/components/StatCard";
 import BulletinModal from "@/components/BulletinModal";
 import SettingsPanel from "@/components/SettingsPanel";
-import api, { money, formatApiError } from "@/lib/api";
+import api, { money, formatApiError, MONTH_LABELS } from "@/lib/api";
 import { toast } from "sonner";
 import {
   Users, GraduationCap, DollarSign, TrendingDown, Scale, Wallet,
@@ -72,8 +72,8 @@ export default function AdminDashboard() {
                   <tr key={p.id} className="border-t border-slate-100">
                     <td className="px-6 py-2.5 font-medium text-slate-800">{p.student_name}</td>
                     <td className="px-4 py-2.5 text-slate-500">{new Date(p.date).toLocaleDateString("fr-FR")}</td>
-                    <td className="px-4 py-2.5 text-xs text-slate-600">{(p.allocations || []).map((a) => <span key={a.category} className="inline-block mr-2 bg-slate-100 rounded px-1.5 py-0.5">{a.category.toUpperCase()}: {money(a.amount)}</span>)}</td>
-                    <td className="px-6 py-2.5 text-right font-mono font-medium text-emerald-700">{money(p.total_amount)}</td>
+                    <td className="px-4 py-2.5 text-xs text-slate-600">{(p.allocations || []).map((a) => <span key={a.category} className="inline-block mr-2 bg-slate-100 rounded px-1.5 py-0.5">{MONTH_LABELS[a.category] || a.category}: {money(a.amount, p.currency)}</span>)}</td>
+                    <td className="px-6 py-2.5 text-right font-mono font-medium text-emerald-700">{money(p.total_amount, p.currency)}</td>
                   </tr>
                 ))}
                 {stats.derniers_paiements.length === 0 && <tr><td colSpan={4} className="px-6 py-6 text-center text-slate-400">Aucun paiement enregistré</td></tr>}
@@ -122,28 +122,29 @@ function InventoryPanel({ reloadStats }) {
   return (
     <div className="space-y-4" data-testid="admin-inventory-calculator">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard icon={Calculator} label="Masse salariale annuelle" value={money(inv.masse_salariale_annuelle)} accent="indigo" />
-        <StatCard icon={CheckCircle2} label="Total payé" value={money(inv.total_paye)} accent="emerald" />
-        <StatCard icon={Wallet} label="Reste à décaisser" value={money(inv.reste_a_payer)} accent="amber" />
+        <StatCard icon={Calculator} label="Masse salariale annuelle (FC)" value={money(inv.masse_salariale_annuelle, "FC")} accent="indigo" />
+        <StatCard icon={CheckCircle2} label="Total payé (FC)" value={money(inv.total_paye, "FC")} accent="emerald" />
+        <StatCard icon={Wallet} label="Reste à décaisser (FC)" value={money(inv.reste_a_payer, "FC")} accent="amber" />
       </div>
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
-            <tr><th className="text-left px-4 py-3">Enseignant</th><th className="text-right px-4 py-3">Salaire</th><th className="text-right px-4 py-3">Dû annuel</th><th className="text-right px-4 py-3">Payé</th><th className="text-right px-4 py-3">Reste</th><th className="text-right px-4 py-3">Action</th></tr>
+            <tr><th className="text-left px-4 py-3">Enseignant</th><th className="text-right px-4 py-3">Salaire</th><th className="text-right px-4 py-3">Dû annuel</th><th className="text-right px-4 py-3">Payé</th><th className="text-right px-4 py-3">Reste</th><th className="text-center px-4 py-3">Mois payés</th><th className="text-right px-4 py-3">Action</th></tr>
           </thead>
           <tbody>
             {inv.rows.map((r) => (
               <tr key={r.teacher_id} className="border-t border-slate-100">
                 <td className="px-4 py-3 font-medium text-slate-800">{r.name}</td>
-                <td className="px-4 py-3 text-right font-mono text-slate-600">{money(r.salaire ?? r.salaire_trimestre)} <span className="text-xs text-slate-400">/ {r.periode === "mois" ? "mois" : "trim."}</span></td>
-                <td className="px-4 py-3 text-right font-mono text-slate-600">{money(r.du_annuel)}</td>
-                <td className="px-4 py-3 text-right font-mono text-emerald-700">{money(r.paye)}</td>
-                <td className={`px-4 py-3 text-right font-mono font-semibold ${r.reste > 0 ? "text-rose-600" : "text-emerald-600"}`}>{money(r.reste)}</td>
+                <td className="px-4 py-3 text-right font-mono text-slate-600">{money(r.salaire ?? r.salaire_trimestre, r.devise)} <span className="text-xs text-slate-400">/ mois</span></td>
+                <td className="px-4 py-3 text-right font-mono text-slate-600">{money(r.du_annuel, r.devise)}</td>
+                <td className="px-4 py-3 text-right font-mono text-emerald-700">{money(r.paye, r.devise)}</td>
+                <td className={`px-4 py-3 text-right font-mono font-semibold ${r.reste > 0 ? "text-rose-600" : "text-emerald-600"}`}>{money(r.reste, r.devise)}</td>
+                <td className="px-4 py-3 text-center font-mono text-slate-500">{r.mois_payes ?? 0}/10</td>
                 <td className="px-4 py-3 text-right whitespace-nowrap"><button onClick={() => setPayFor(r)} data-testid={`btn-pay-teacher-${r.teacher_id}`} className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded-md text-xs font-semibold"><DollarSign className="h-3.5 w-3.5" /> Payer</button>
                   <button onClick={async () => { if (!window.confirm(`Supprimer l'enseignant ${r.name} ?`)) return; try { await api.delete(`/users/${r.teacher_id}`); toast.success("Enseignant supprimé"); load(); reloadStats(); } catch (e) { toast.error(formatApiError(e.response?.data?.detail)); } }} data-testid={`btn-delete-teacher-${r.teacher_id}`} className="ml-2 text-slate-400 hover:text-rose-600 align-middle" title="Supprimer"><Trash2 className="h-4 w-4 inline" /></button></td>
               </tr>
             ))}
-            {inv.rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Aucun enseignant enregistré</td></tr>}
+            {inv.rows.length === 0 && <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-400">Aucun enseignant enregistré</td></tr>}
           </tbody>
         </table>
       </div>
@@ -153,27 +154,45 @@ function InventoryPanel({ reloadStats }) {
 }
 
 function PayTeacherDialog({ teacher, onClose, onPaid }) {
+  const [mois, setMois] = useState("");
+  const [currency, setCurrency] = useState("FC");
   const [amount, setAmount] = useState("");
-  const [trimestre, setTrimestre] = useState(1);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { if (teacher) setAmount(""); }, [teacher]);
+  useEffect(() => {
+    if (teacher) {
+      const firstImpaye = (teacher.mois || []).find((m) => m.status !== "paye" && m.du > 0);
+      const target = firstImpaye || (teacher.mois || [])[0];
+      setMois(target?.key || "");
+      setCurrency(teacher.devise || "FC");
+      setAmount(target ? String(target.reste || target.du || "") : "");
+    }
+  }, [teacher]);
+  const selMonth = (teacher?.mois || []).find((m) => m.key === mois);
   const submit = async () => {
+    if (!mois) { toast.error("Choisissez un mois"); return; }
     if (!amount || parseFloat(amount) <= 0) { toast.error("Montant invalide"); return; }
     setSaving(true);
     try {
-      await api.post("/teacher-payments", { teacher_id: teacher.teacher_id, amount: parseFloat(amount), trimestre });
-      toast.success("Honoraire payé"); onClose(); onPaid();
+      await api.post("/teacher-payments", { teacher_id: teacher.teacher_id, amount: parseFloat(amount), mois, currency });
+      toast.success("Salaire payé"); onClose(); onPaid();
     } catch (e) { toast.error(formatApiError(e.response?.data?.detail)); }
     finally { setSaving(false); }
   };
   return (
     <Dialog open={!!teacher} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm bg-white">
-        <DialogHeader><DialogTitle className="font-display">Paiement honoraire</DialogTitle><p className="text-sm text-slate-500">{teacher?.name} · reste {money(teacher?.reste)}</p></DialogHeader>
-        <label className="block"><span className="text-xs font-medium text-slate-600">Trimestre</span>
-          <select className="fld mt-1" value={trimestre} onChange={(e) => setTrimestre(parseInt(e.target.value))}>{[1, 2, 3].map((t) => <option key={t} value={t}>Trimestre {t}</option>)}</select></label>
-        <label className="block"><span className="text-xs font-medium text-slate-600">Montant ($)</span>
-          <input type="number" className="fld mt-1" value={amount} onChange={(e) => setAmount(e.target.value)} data-testid="input-teacher-payment" /></label>
+        <DialogHeader><DialogTitle className="font-display">Paiement du salaire</DialogTitle><p className="text-sm text-slate-500">{teacher?.name} · reste {money(teacher?.reste, teacher?.devise)}</p></DialogHeader>
+        <label className="block"><span className="text-xs font-medium text-slate-600">Mois</span>
+          <select className="fld mt-1" value={mois} onChange={(e) => { const k = e.target.value; setMois(k); const m = (teacher?.mois || []).find((x) => x.key === k); setAmount(m ? String(m.reste || m.du || "") : ""); }} data-testid="select-teacher-month">
+            {(teacher?.mois || []).map((m) => <option key={m.key} value={m.key}>{m.label}{m.status === "paye" ? " ✓ payé" : m.status === "partiel" ? " · partiel" : ""}</option>)}
+          </select></label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block"><span className="text-xs font-medium text-slate-600">Devise</span>
+            <select className="fld mt-1" value={currency} onChange={(e) => setCurrency(e.target.value)} data-testid="select-teacher-payment-devise"><option value="FC">Franc (FC)</option><option value="USD">Dollar ($)</option></select></label>
+          <label className="block"><span className="text-xs font-medium text-slate-600">Montant</span>
+            <input type="number" className="fld mt-1" value={amount} onChange={(e) => setAmount(e.target.value)} data-testid="input-teacher-payment" /></label>
+        </div>
+        {selMonth && <p className="text-[11px] text-slate-400">Reste du mois {selMonth.label} : {money(selMonth.reste, teacher.devise)}</p>}
         <DialogFooter>
           <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-300 text-sm text-slate-600">Annuler</button>
           <button onClick={submit} disabled={saving} data-testid="btn-confirm-teacher-payment" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold disabled:opacity-60">{saving && <Loader2 className="h-4 w-4 animate-spin" />} Confirmer</button>
@@ -331,7 +350,7 @@ function UsersPanel() {
           {form.role !== "comptable" && (
             <div className="grid grid-cols-2 gap-3">
               <label className="block"><span className="text-xs font-medium text-slate-600">Code d'accès (4 chiffres)</span><input className="fld mt-1 font-mono" maxLength={4} value={form.access_code} onChange={(e) => setForm({ ...form, access_code: e.target.value.replace(/\D/g, "") })} data-testid="input-user-code" /></label>
-              {form.role === "enseignant" && <label className="block"><span className="text-xs font-medium text-slate-600">Salaire/trimestre ($)</span><input type="number" className="fld mt-1" value={form.salaire_trimestre} onChange={(e) => setForm({ ...form, salaire_trimestre: e.target.value })} /></label>}
+              {form.role === "enseignant" && <label className="block"><span className="text-xs font-medium text-slate-600">Salaire mensuel</span><input type="number" className="fld mt-1" value={form.salaire_trimestre} onChange={(e) => setForm({ ...form, salaire_trimestre: e.target.value })} /></label>}
             </div>
           )}
           <DialogFooter>
@@ -351,7 +370,7 @@ function UsersPanel() {
                   <input className="fld mt-1 font-mono tracking-widest" maxLength={4} value={edit.access_code || ""} onChange={(e) => setEdit({ ...edit, access_code: e.target.value.replace(/\D/g, "") })} data-testid="input-edit-code" /></label>
               )}
               {edit.role === "enseignant" && (
-                <label className="block"><span className="text-xs font-medium text-slate-600">Salaire/trimestre ($)</span><input type="number" className="fld mt-1" value={edit.salaire_trimestre ?? 0} onChange={(e) => setEdit({ ...edit, salaire_trimestre: e.target.value })} data-testid="input-edit-salaire" /></label>
+                <label className="block"><span className="text-xs font-medium text-slate-600">Salaire mensuel</span><input type="number" className="fld mt-1" value={edit.salaire_trimestre ?? 0} onChange={(e) => setEdit({ ...edit, salaire_trimestre: e.target.value })} data-testid="input-edit-salaire" /></label>
               )}
               <label className="block"><span className="text-xs font-medium text-slate-600">Nouveau mot de passe (optionnel)</span><input type="password" className="fld mt-1" value={edit.password} onChange={(e) => setEdit({ ...edit, password: e.target.value })} data-testid="input-edit-password" /></label>
             </>

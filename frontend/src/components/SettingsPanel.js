@@ -46,6 +46,9 @@ export default function SettingsPanel() {
           <input className="fld mt-1" value={form.ville} onChange={(e) => set("ville", e.target.value)} data-testid="input-ville" /></label>
         <label className="block sm:col-span-2"><span className="text-xs font-medium text-slate-600">Année scolaire</span>
           <input className="fld mt-1 font-mono" value={form.annee_scolaire} onChange={(e) => set("annee_scolaire", e.target.value)} placeholder="2026-2027" data-testid="input-annee" /></label>
+        <label className="block sm:col-span-2"><span className="text-xs font-medium text-slate-600">Taux de change (nombre de FC pour 1 $)</span>
+          <input type="number" min="0" className="fld mt-1 font-mono" value={form.taux_change ?? 2800} onChange={(e) => set("taux_change", e.target.value)} placeholder="2800" data-testid="input-taux-change" />
+          <span className="text-[11px] text-slate-400">Sert à convertir les paiements/salaires entre $ et FC.</span></label>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6">

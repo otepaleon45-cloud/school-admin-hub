@@ -3,14 +3,15 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { money } from "@/lib/api";
 import { Printer, X } from "lucide-react";
 
-function numberToFrenchWords(n) {
-  // simplified: return figure; French words for common amounts
-  return `${money(n).replace("$", "")} dollars US`;
+function numberToFrenchWords(n, cur) {
+  const nom = cur === "FC" ? "francs congolais" : "dollars US";
+  return `${money(n, cur).replace(/[$]|FC/g, "").trim()} ${nom}`;
 }
 
 export default function ReceiptModal({ receipt, open, onClose }) {
   const settings = useSettings();
   if (!receipt) return null;
+  const cur = receipt.currency || "USD";
   const d = new Date(receipt.date);
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -63,20 +64,20 @@ export default function ReceiptModal({ receipt, open, onClose }) {
                 {receipt.allocations.map((a, i) => (
                   <tr key={i} className="border-b border-slate-200">
                     <td className="px-3 py-2 text-slate-700">{a.label}</td>
-                    <td className="px-3 py-2 text-right font-mono text-slate-900">{money(a.amount)}</td>
+                    <td className="px-3 py-2 text-right font-mono text-slate-900">{money(a.amount, cur)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="bg-indigo-50">
                   <td className="px-3 py-2 font-bold text-slate-900">TOTAL PAYÉ</td>
-                  <td className="px-3 py-2 text-right font-mono font-bold text-indigo-800">{money(receipt.total_amount)}</td>
+                  <td className="px-3 py-2 text-right font-mono font-bold text-indigo-800">{money(receipt.total_amount, cur)}</td>
                 </tr>
               </tfoot>
             </table>
 
             <p className="text-xs text-slate-600 mt-2 italic">
-              Arrêté le présent reçu à la somme de {numberToFrenchWords(receipt.total_amount)}.
+              Arrêté le présent reçu à la somme de {numberToFrenchWords(receipt.total_amount, cur)}.
             </p>
 
             <div className="flex justify-between items-end mt-8">

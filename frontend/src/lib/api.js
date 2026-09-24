@@ -10,10 +10,18 @@ api.interceptors.request.use((cfg) => {
   return cfg;
 });
 
-export function money(n) {
+export function money(n, cur = "USD") {
   const v = Number(n || 0);
+  if (cur === "FC") return `${Math.round(v).toLocaleString("fr-FR")} FC`;
   return `$${v.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
+
+export const MONTHS = [
+  ["sept", "Septembre"], ["oct", "Octobre"], ["nov", "Novembre"], ["dec", "Décembre"],
+  ["jan", "Janvier"], ["fev", "Février"], ["mars", "Mars"], ["avr", "Avril"],
+  ["mai", "Mai"], ["juin", "Juin"],
+];
+export const MONTH_LABELS = Object.fromEntries(MONTHS);
 
 export function formatApiError(detail) {
   if (detail == null) return "Une erreur est survenue.";
