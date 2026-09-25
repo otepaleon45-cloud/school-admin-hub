@@ -73,3 +73,10 @@ users, classes, students, payments, expenses, subjects, evaluations, grades, rec
 - Enseignants payés par MOIS en FC (champ `devise`, défaut FC). teacher_payments: `mois` + `currency` + amount_base. inventory(): dû annuel = salaire mensuel × 10, suivi mois payés par enseignant, PayTeacherDialog choisit mois + devise + montant.
 - Dashboards: recettes/dépenses agrégées en USD base (total_base/amount_base).
 - Testé bout en bout (testing_agent iteration_2.json): 15/16 assertions UI OK, backend curl OK. Aucun bug fonctionnel. Restent 2 warnings cosmétiques préexistants (Radix DialogDescription, <span> injecté dans <option>).
+
+## 2026-06 — Frais divers & Uniformes (catalogue + ventes)
+- Nouveau catalogue `fee_items` (name, category Uniforme/Technique/Stage/Autre, prix, devise USD|FC). CRUD: GET/POST/PUT/DELETE /api/fee-items. Seed initial: Pantalon, Chemise primaire, Chemise secondaire, Jupe, Cravate, Logo (Uniforme), Frais techniques (Technique), Frais de stage (Stage), tous prix 0.
+- Ventes `sales`: POST /api/sales {student_id?|client_name, currency USD|FC, lines:[{item_id,name,prix,qty}]} -> total_amount (devise) + total_base (USD). GET /api/sales, DELETE /api/sales/{id}, GET /api/sale-receipts/{id} (format ReceiptModal). Les ventes comptent dans les recettes des dashboards (total_base).
+- Frontend: nouvel onglet Comptable « Frais divers & Uniformes » (FeeItemsPanel): catalogue éditable par catégorie (prix + devise + équivalent), bouton « Encaisser des frais » (SaleDialog: élève ou client externe, devise, quantités, total, reçu imprimable), et liste des encaissements récents avec réimpression.
+- Validé: seed OK, CRUD items OK, vente FC 140000 -> 49,12 $ base ajoutée aux recettes, reçu OK (curl). UI: onglet + dialog rendus sans overflow (desktop).
+- NETTOYAGE base pour usage réel: collections students/payments/sales/teacher_payments/expenses/evaluations/reclamations vidées. Restent: 31 classes, 3 comptes base, 8 articles (prix 0), settings. Recettes/dépenses/dettes = 0.

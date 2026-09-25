@@ -628,6 +628,145 @@ async def delete_expense(expense_id: str, user: dict = Depends(require_roles("ad
 
 
 # ---------------------------------------------------------------------------
+# Frais divers / Uniformes (catalogue + ventes)
+# ---------------------------------------------------------------------------
+ITEM_CATEGORIES = ["Uniforme", "Technique", "Stage", "Autre"]
+
+
+class FeeItemBody(BaseModel):
+    name: str
+    category: str = "Autre"  # Uniforme | Technique | Stage | Autre
+    prix: float = 0.0
+    devise: str = "USD"
+
+
+class SaleLine(BaseModel):
+    item_id: Optional[str] = None
+    name: str
+    prix: float
+    qty: int = 1
+
+
+class SaleBody(BaseModel):
+    student_id: Optional[str] = None
+    client_name: str = ""
+    currency: str = "USD"
+    lines: List[SaleLine]
+    note: str = ""
+
+
+@api_router.get("/fee-items")
+async def list_fee_items(user: dict = Depends(get_current_user)):
+    docs = await db.fee_items.find().sort("category", 1).to_list(2000)
+    return [clean(d) for d in docs]
+
+
+@api_router.post("/fee-items")
+async def create_fee_item(body: FeeItemBody, user: dict = Depends(require_roles("admin", "comptable"))):
+    doc = body.model_dump()
+    doc["devise"] = doc.get("devise") if doc.get("devise") in ("USD", "FC") else "USD"
+    doc["prix"] = round(float(doc.get("prix", 0)), 2)
+    doc["created_at"] = now_iso()
+    res = await db.fee_items.insert_one(doc)
+    doc["_id"] = res.inserted_id
+    return clean(doc)
+
+
+@api_router.put("/fee-items/{item_id}")
+async def update_fee_item(item_id: str, body: FeeItemBody, user: dict = Depends(require_roles("admin", "comptable"))):
+    upd = body.model_dump()
+    upd["devise"] = upd.get("devise") if upd.get("devise") in ("USD", "FC") else "USD"
+    upd["prix"] = round(float(upd.get("prix", 0)), 2)
+    await db.fee_items.update_one({"_id": oid(item_id)}, {"$set": upd})
+    doc = await db.fee_items.find_one({"_id": oid(item_id)})
+    return clean(doc)
+
+
+@api_router.delete("/fee-items/{item_id}")
+async def delete_fee_item(item_id: str, user: dict = Depends(require_roles("admin", "comptable"))):
+    await db.fee_items.delete_one({"_id": oid(item_id)})
+    return {"ok": True}
+
+
+@api_router.get("/sales")
+async def list_sales(user: dict = Depends(require_roles("admin", "comptable"))):
+    docs = await db.sales.find().sort("date", -1).to_list(2000)
+    return [clean(d) for d in docs]
+
+
+@api_router.post("/sales")
+async def create_sale(body: SaleBody, user: dict = Depends(require_roles("admin", "comptable"))):
+    currency = body.currency if body.currency in ("USD", "FC") else "USD"
+    taux = await get_taux()
+    lines = [l for l in body.lines if l.qty > 0 and l.prix > 0]
+    if not lines:
+        raise HTTPException(status_code=400, detail="Aucun article à encaisser")
+    out_lines = []
+    total = 0.0
+    for l in lines:
+        montant = round(float(l.prix) * int(l.qty), 2)
+        out_lines.append({"item_id": l.item_id, "name": l.name, "prix": round(float(l.prix), 2), "qty": int(l.qty), "montant": montant})
+        total += montant
+    total = round(total, 2)
+    total_base = round(to_base(total, currency, "USD", taux), 2)
+    client = body.client_name
+    if body.student_id:
+        student = await db.students.find_one({"_id": oid(body.student_id)})
+        if student and not client:
+            client = f"{student.get('nom', '')} {student.get('postnom', '')}".strip()
+    count = await db.sales.count_documents({})
+    doc = {
+        "student_id": body.student_id,
+        "client_name": client,
+        "receipt_no": f"FD-{datetime.now().year}-{count + 1:05d}",
+        "date": now_iso(),
+        "currency": currency,
+        "taux": taux,
+        "lines": out_lines,
+        "total_amount": total,
+        "total_base": total_base,
+        "note": body.note,
+        "recorded_by": user["name"],
+    }
+    res = await db.sales.insert_one(doc)
+    doc["_id"] = res.inserted_id
+    return {"sale": clean(doc)}
+
+
+@api_router.delete("/sales/{sale_id}")
+async def delete_sale(sale_id: str, user: dict = Depends(require_roles("admin", "comptable"))):
+    await db.sales.delete_one({"_id": oid(sale_id)})
+    return {"ok": True}
+
+
+@api_router.get("/sale-receipts/{sale_id}")
+async def sale_receipt(sale_id: str, user: dict = Depends(require_roles("admin", "comptable"))):
+    sale = await db.sales.find_one({"_id": oid(sale_id)})
+    if not sale:
+        raise HTTPException(status_code=404, detail="Reçu introuvable")
+    student = None
+    cls_name = ""
+    if sale.get("student_id"):
+        s = await db.students.find_one({"_id": oid(sale["student_id"])})
+        if s:
+            student = clean(s)
+            cls = await db.classes.find_one({"_id": oid(s["class_id"])}) if s.get("class_id") else None
+            cls_name = f"{cls['name']} {cls['section']}" if cls else ""
+    sale = clean(sale)
+    if not student and sale.get("client_name"):
+        student = {"nom": sale["client_name"], "postnom": "", "prenom": "", "matricule": "—"}
+    return {
+        "receipt_no": sale["receipt_no"],
+        "date": sale["date"],
+        "currency": sale.get("currency", "USD"),
+        "student": student,
+        "class_name": cls_name or "Frais divers",
+        "allocations": [{"category": l.get("item_id") or l["name"], "label": f"{l['name']} × {l['qty']}", "amount": l["montant"]} for l in sale["lines"]],
+        "total_amount": sale["total_amount"],
+    }
+
+
+# ---------------------------------------------------------------------------
 # Subjects / Matières
 # ---------------------------------------------------------------------------
 @api_router.get("/subjects")
@@ -1023,6 +1162,8 @@ async def dashboard_admin(user: dict = Depends(require_roles("admin"))):
     recettes = 0.0
     for p in await db.payments.find().to_list(5000):
         recettes += float(p.get("total_base", p.get("total_amount", 0)))
+    for sale in await db.sales.find().to_list(5000):
+        recettes += float(sale.get("total_base", sale.get("total_amount", 0)))
     depenses = 0.0
     for e in await db.expenses.find().to_list(5000):
         depenses += float(e.get("amount_base", e.get("amount", 0)))
@@ -1057,6 +1198,8 @@ async def dashboard_comptable(user: dict = Depends(require_roles("admin", "compt
     recettes = 0.0
     for p in await db.payments.find().to_list(5000):
         recettes += float(p.get("total_base", p.get("total_amount", 0)))
+    for sale in await db.sales.find().to_list(5000):
+        recettes += float(sale.get("total_base", sale.get("total_amount", 0)))
     depenses = 0.0
     for e in await db.expenses.find().to_list(5000):
         depenses += float(e.get("amount_base", e.get("amount", 0)))
@@ -1138,6 +1281,7 @@ async def seed():
     prof_id = await ensure_user(os.environ["ENSEIGNANT_EMAIL"], os.environ["ENSEIGNANT_PASSWORD"], "Prof. Kabongo Jean",
                                 "enseignant", access_code=os.environ["ENSEIGNANT_ACCESS_CODE"], salaire=450.0)
     await seed_classes()
+    await seed_fee_items()
     return  # aucune autre donnée de démonstration
 
 
@@ -1157,6 +1301,18 @@ async def seed_classes():
             defs.append({"name": f"{i}{'ère' if i == 1 else 'e'} Humanités", "section": opt, "niveau": "Humanités"})
     for c in defs:
         await db.classes.insert_one({**c, **fee, "created_at": now_iso()})
+
+
+async def seed_fee_items():
+    if await db.fee_items.count_documents({}) > 0:
+        return
+    items = [
+        ("Pantalon", "Uniforme"), ("Chemise primaire", "Uniforme"), ("Chemise secondaire", "Uniforme"),
+        ("Jupe", "Uniforme"), ("Cravate", "Uniforme"), ("Logo", "Uniforme"),
+        ("Frais techniques", "Technique"), ("Frais de stage", "Stage"),
+    ]
+    for name, cat in items:
+        await db.fee_items.insert_one({"name": name, "category": cat, "prix": 0.0, "devise": "USD", "created_at": now_iso()})
 
 
 @app.on_event("startup")

@@ -5,6 +5,7 @@ import StatCard from "@/components/StatCard";
 import ReceiptModal from "@/components/ReceiptModal";
 import ClassFeesPanel from "@/components/ClassFeesPanel";
 import TeachersPanel from "@/components/TeachersPanel";
+import FeeItemsPanel from "@/components/FeeItemsPanel";
 import api, { money, formatApiError, MONTH_LABELS } from "@/lib/api";
 import { useSettings } from "@/hooks/useSettings";
 import { toast } from "sonner";
@@ -31,6 +32,7 @@ const TABS = [
   { key: "dettes", label: "Dettes par mois" },
   { key: "depenses", label: "Recettes & Dépenses" },
   { key: "frais", label: "Frais par classe" },
+  { key: "divers", label: "Frais divers & Uniformes" },
   { key: "enseignants", label: "Enseignants" },
 ];
 
@@ -158,6 +160,7 @@ export default function ComptableDashboard() {
 
       {tab === "dettes" && <DebtsPanel students={students} classes={classes} className={className} />}
       {tab === "frais" && <ClassFeesPanel classes={classes} reload={load} />}
+      {tab === "divers" && <FeeItemsPanel students={students} onReceipt={(r) => { setReceipt(r); load(); }} />}
       {tab === "enseignants" && <TeachersPanel />}
 
       <AddStudentDialog open={addOpen} onClose={() => setAddOpen(false)} classes={classes} onSaved={load} />
