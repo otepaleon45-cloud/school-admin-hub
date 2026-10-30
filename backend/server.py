@@ -141,6 +141,8 @@ class StudentCreate(BaseModel):
     tuteur_nom: str = ""
     tuteur_contact: str = ""
     status: str = "pre_inscrit"
+    prise_en_charge: bool = False  # élève pris en charge par l'école (ne paie pas)
+    parent_teacher_id: Optional[str] = None  # enfant d'enseignant (scolarité coupée du salaire)
 
 
 class PaymentBody(BaseModel):
@@ -425,6 +427,9 @@ FEE_LABELS = {k: f"Frais {l}" for k, l in MONTHS}
 async def student_ledger(student: dict) -> dict:
     cls = await db.classes.find_one({"_id": oid(student["class_id"])}) if student.get("class_id") else None
     frais = float(cls.get("frais_mensuel", 0) if cls else 0)
+    prise_en_charge = bool(student.get("prise_en_charge"))
+    enfant_enseignant = bool(student.get("parent_teacher_id"))
+    exempt = prise_en_charge or enfant_enseignant
     base = "USD"
     paid = {k: 0.0 for k in MONTH_KEYS}
     payments = await db.payments.find({"student_id": str(student["_id"])}).to_list(1000)
@@ -434,16 +439,19 @@ async def student_ledger(student: dict) -> dict:
                 paid[a["category"]] += float(a.get("amount_base", a.get("amount", 0)))
     mois = []
     for k in MONTH_KEYS:
-        du = frais
+        du = 0.0 if exempt else frais
         pay = round(paid[k], 2)
         reste = round(du - pay, 2)
         status = "na" if du <= 0 else ("paye" if pay >= du - 0.001 else ("partiel" if pay > 0 else "impaye"))
         mois.append({"key": k, "label": MONTH_LABELS[k], "du": round(du, 2), "paye": pay, "reste": max(reste, 0), "status": status})
-    total_du = frais * MOIS_PAR_AN
+    total_du = 0.0 if exempt else frais * MOIS_PAR_AN
     total_paye = round(sum(paid.values()), 2)
     return {
         "frais_mensuel": round(frais, 2),
         "devise": base,
+        "exempt": exempt,
+        "prise_en_charge": prise_en_charge,
+        "enfant_enseignant": enfant_enseignant,
         "mois": mois,
         "mois_payes": sum(1 for m in mois if m["status"] == "paye"),
         "mois_impayes": sum(1 for m in mois if m["status"] in ("impaye", "partiel")),
@@ -1062,13 +1070,22 @@ async def pay_teacher(body: TeacherPaymentBody, user: dict = Depends(require_rol
 @api_router.get("/inventory")
 async def inventory(user: dict = Depends(require_roles("admin"))):
     teachers = await db.users.find({"role": "enseignant"}).to_list(1000)
+    taux = await get_taux()
     rows = []
     total_due = 0.0
     total_paid = 0.0
     for t in teachers:
         devise = t.get("devise", "FC")
         salaire = float(t.get("salaire", t.get("salaire_trimestre", 0)) or 0)
-        due_annuel = salaire * MOIS_PAR_AN
+        # Déduction scolarité des enfants de l'enseignant (frais mensuel converti dans la devise du salaire)
+        children = await db.students.find({"parent_teacher_id": str(t["_id"])}).to_list(1000)
+        ded_usd_month = 0.0
+        for c in children:
+            ccls = await db.classes.find_one({"_id": oid(c["class_id"])}) if c.get("class_id") else None
+            ded_usd_month += float(ccls.get("frais_mensuel", 0) if ccls else 0)
+        ded_month = round(ded_usd_month * taux if devise == "FC" else ded_usd_month, 2)
+        du_month = max(round(salaire - ded_month, 2), 0)
+        due_annuel = du_month * MOIS_PAR_AN
         paid_by_month = {k: 0.0 for k in MONTH_KEYS}
         paid = 0.0
         for tp in await db.teacher_payments.find({"teacher_id": str(t["_id"])}).to_list(1000):
@@ -1079,7 +1096,7 @@ async def inventory(user: dict = Depends(require_roles("admin"))):
                 paid_by_month[m] += base
         mois = []
         for k in MONTH_KEYS:
-            du = salaire
+            du = du_month
             pay = round(paid_by_month[k], 2)
             status = "na" if du <= 0 else ("paye" if pay >= du - 0.001 else ("partiel" if pay > 0 else "impaye"))
             mois.append({"key": k, "label": MONTH_LABELS[k], "du": round(du, 2), "paye": pay, "reste": max(round(du - pay, 2), 0), "status": status})
@@ -1087,9 +1104,14 @@ async def inventory(user: dict = Depends(require_roles("admin"))):
             "teacher_id": str(t["_id"]),
             "name": t["name"],
             "salaire": round(salaire, 2),
+            "salaire_brut": round(salaire, 2),
             "devise": devise,
             "periode": "mois",
             "salaire_trimestre": round(salaire, 2),
+            "nb_enfants": len(children),
+            "deduction_mensuelle": ded_month,
+            "deduction_annuelle": round(ded_month * MOIS_PAR_AN, 2),
+            "salaire_net_mensuel": du_month,
             "du_annuel": round(due_annuel, 2),
             "paye": round(paid, 2),
             "reste": round(due_annuel - paid, 2),
@@ -1103,6 +1125,56 @@ async def inventory(user: dict = Depends(require_roles("admin"))):
         "masse_salariale_annuelle": round(total_due, 2),
         "total_paye": round(total_paid, 2),
         "reste_a_payer": round(total_due - total_paid, 2),
+    }
+
+
+@api_router.get("/monthly-report")
+async def monthly_report(user: dict = Depends(require_roles("admin", "comptable"))):
+    taux = await get_taux()
+    rec = {k: 0.0 for k in MONTH_KEYS}
+    det = {k: 0.0 for k in MONTH_KEYS}
+    students = await db.students.find().to_list(10000)
+    for s in students:
+        ledger = await student_ledger(s)
+        for m in ledger["mois"]:
+            rec[m["key"]] += m["paye"]
+            det[m["key"]] += m["reste"]
+    sal_paye = {k: 0.0 for k in MONTH_KEYS}
+    sal_det = {k: 0.0 for k in MONTH_KEYS}
+    teachers = await db.users.find({"role": "enseignant"}).to_list(1000)
+    for t in teachers:
+        devise = t.get("devise", "FC")
+        salaire = float(t.get("salaire", t.get("salaire_trimestre", 0)) or 0)
+        children = await db.students.find({"parent_teacher_id": str(t["_id"])}).to_list(1000)
+        ded_usd_month = 0.0
+        for c in children:
+            ccls = await db.classes.find_one({"_id": oid(c["class_id"])}) if c.get("class_id") else None
+            ded_usd_month += float(ccls.get("frais_mensuel", 0) if ccls else 0)
+        ded_month = ded_usd_month * taux if devise == "FC" else ded_usd_month
+        du_month = max(salaire - ded_month, 0)
+        paid_by_month = {k: 0.0 for k in MONTH_KEYS}
+        for tp in await db.teacher_payments.find({"teacher_id": str(t["_id"])}).to_list(1000):
+            m = tp.get("mois")
+            if m in paid_by_month:
+                paid_by_month[m] += float(tp.get("amount_base", tp.get("amount", 0)))
+        for k in MONTH_KEYS:
+            sal_paye[k] += paid_by_month[k]
+            sal_det[k] += max(du_month - paid_by_month[k], 0)
+    months = [{
+        "key": k, "label": MONTH_LABELS[k],
+        "recettes_eleves": round(rec[k], 2),
+        "dette_eleves": round(det[k], 2),
+        "salaires_payes": round(sal_paye[k], 2),
+        "dette_enseignants": round(sal_det[k], 2),
+    } for k in MONTH_KEYS]
+    return {
+        "months": months,
+        "totaux": {
+            "recettes_eleves": round(sum(rec.values()), 2),
+            "dette_eleves": round(sum(det.values()), 2),
+            "salaires_payes": round(sum(sal_paye.values()), 2),
+            "dette_enseignants": round(sum(sal_det.values()), 2),
+        },
     }
 
 

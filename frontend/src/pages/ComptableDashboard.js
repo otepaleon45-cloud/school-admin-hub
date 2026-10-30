@@ -11,7 +11,7 @@ import { useSettings } from "@/hooks/useSettings";
 import { toast } from "sonner";
 import {
   Users, DollarSign, TrendingDown, Scale, PlusCircle, Receipt, Trash2,
-  Wallet, UserPlus, Loader2, Printer,
+  Wallet, UserPlus, Loader2, Printer, Search, CalendarDays,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -30,6 +30,7 @@ const TABS = [
   { key: "eleves", label: "Élèves & Inscriptions" },
   { key: "guichet", label: "Guichet & Reçus" },
   { key: "dettes", label: "Dettes par mois" },
+  { key: "bilan", label: "Bilan mensuel" },
   { key: "depenses", label: "Recettes & Dépenses" },
   { key: "frais", label: "Frais par classe" },
   { key: "divers", label: "Frais divers & Uniformes" },
@@ -162,6 +163,7 @@ export default function ComptableDashboard() {
       )}
 
       {tab === "dettes" && <DebtsPanel students={students} classes={classes} className={className} />}
+      {tab === "bilan" && <MonthlyReportPanel />}
       {tab === "frais" && <ClassFeesPanel classes={classes} reload={load} />}
       {tab === "divers" && <FeeItemsPanel students={students} onReceipt={(r) => { setReceipt(r); load(); }} />}
       {tab === "enseignants" && <TeachersPanel />}
@@ -183,57 +185,127 @@ async function openReceipt(id, setReceipt) {
 }
 
 export function StudentsTable({ students, className, onPay, onDelete, statusBadge }) {
+  const [q, setQ] = useState("");
+  const query = q.trim().toLowerCase();
+  const filtered = query
+    ? students.filter((s) => [s.nom, s.postnom, s.prenom, s.matricule].filter(Boolean).join(" ").toLowerCase().includes(query))
+    : students;
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
-          <tr>
-            <th className="text-left px-4 py-3">Matricule</th>
-            <th className="text-left px-4 py-3">Nom complet</th>
-            <th className="text-left px-4 py-3">Classe</th>
-            <th className="text-left px-4 py-3">Statut</th>
-            <th className="text-right px-4 py-3">Dette</th>
-            {onPay && <th className="text-right px-4 py-3">Action</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {students.map((s) => (
-            <tr key={s.id} className="border-t border-slate-100" data-testid={`student-row-${s.id}`}>
-              <td className="px-4 py-3 font-mono text-slate-600">{s.matricule}</td>
-              <td className="px-4 py-3 font-medium text-slate-800">{s.nom} {s.postnom} {s.prenom}</td>
-              <td className="px-4 py-3 text-slate-600">{className(s.class_id)}</td>
-              <td className="px-4 py-3">
-                {statusBadge && <span className={`px-2 py-1 rounded-md text-xs font-medium ${STATUS_BADGE[s.status] || "bg-slate-100"}`}>{STATUS_LABEL[s.status] || s.status}</span>}
-              </td>
-              <td className={`px-4 py-3 text-right font-mono ${s.ledger?.dette > 0 ? "text-rose-600 font-semibold" : "text-emerald-600"}`}>{money(s.ledger?.dette)}</td>
-              {onPay && (
-                <td className="px-4 py-3 text-right whitespace-nowrap">
-                  <button onClick={() => onPay(s)} data-testid={`btn-pay-${s.id}`} className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-md text-xs font-semibold">
-                    <DollarSign className="h-3.5 w-3.5" /> Encaisser
-                  </button>
-                  {onDelete && <button onClick={() => onDelete(s)} data-testid={`btn-delete-student-${s.id}`} className="ml-2 text-slate-400 hover:text-rose-600 align-middle" title="Supprimer"><Trash2 className="h-4 w-4 inline" /></button>}
-                </td>
-              )}
+    <div className="space-y-3">
+      <div className="relative max-w-sm">
+        <Search className="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} data-testid="input-search-student"
+          placeholder="Rechercher un élève (nom, matricule)…"
+          className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" />
+      </div>
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+            <tr>
+              <th className="text-left px-4 py-3">Matricule</th>
+              <th className="text-left px-4 py-3">Nom complet</th>
+              <th className="text-left px-4 py-3">Classe</th>
+              <th className="text-left px-4 py-3">Statut</th>
+              <th className="text-right px-4 py-3">Dette</th>
+              {onPay && <th className="text-right px-4 py-3">Action</th>}
             </tr>
-          ))}
-          {students.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Aucun élève</td></tr>}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map((s) => (
+              <tr key={s.id} className="border-t border-slate-100" data-testid={`student-row-${s.id}`}>
+                <td className="px-4 py-3 font-mono text-slate-600">{s.matricule}</td>
+                <td className="px-4 py-3 font-medium text-slate-800">
+                  {s.nom} {s.postnom} {s.prenom}
+                  {s.ledger?.prise_en_charge && <span className="ml-2 text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded" data-testid={`badge-prise-${s.id}`}>Prise en charge</span>}
+                  {s.ledger?.enfant_enseignant && <span className="ml-2 text-[10px] bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded" data-testid={`badge-enfant-${s.id}`}>Enfant enseignant</span>}
+                </td>
+                <td className="px-4 py-3 text-slate-600">{className(s.class_id)}</td>
+                <td className="px-4 py-3">
+                  {statusBadge && <span className={`px-2 py-1 rounded-md text-xs font-medium ${STATUS_BADGE[s.status] || "bg-slate-100"}`}>{STATUS_LABEL[s.status] || s.status}</span>}
+                </td>
+                <td className={`px-4 py-3 text-right font-mono ${s.ledger?.dette > 0 ? "text-rose-600 font-semibold" : "text-emerald-600"}`}>{money(s.ledger?.dette)}</td>
+                {onPay && (
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    <button onClick={() => onPay(s)} data-testid={`btn-pay-${s.id}`} className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-3 py-1.5 rounded-md text-xs font-semibold">
+                      <DollarSign className="h-3.5 w-3.5" /> Encaisser
+                    </button>
+                    {onDelete && <button onClick={() => onDelete(s)} data-testid={`btn-delete-student-${s.id}`} className="ml-2 text-slate-400 hover:text-rose-600 align-middle" title="Supprimer"><Trash2 className="h-4 w-4 inline" /></button>}
+                  </td>
+                )}
+              </tr>
+            ))}
+            {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Aucun élève</td></tr>}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function MonthlyReportPanel() {
+  const [data, setData] = useState(null);
+  useEffect(() => { api.get("/monthly-report").then((r) => setData(r.data)).catch((e) => toast.error(formatApiError(e.response?.data?.detail))); }, []);
+  if (!data) return <p className="text-slate-400 text-sm">Chargement…</p>;
+  const { months, totaux } = data;
+  return (
+    <div data-testid="monthly-report-panel" className="space-y-4">
+      <div className="flex items-center gap-2">
+        <CalendarDays className="h-5 w-5 text-emerald-600" />
+        <div>
+          <h2 className="font-display font-bold text-lg text-slate-900">Bilan mensuel</h2>
+          <p className="text-sm text-slate-500">Recettes et dettes par mois. Colonnes élèves en $ (base), enseignants en FC.</p>
+        </div>
+      </div>
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+            <tr>
+              <th className="text-left px-4 py-3">Mois</th>
+              <th className="text-right px-4 py-3">Recette élèves ($)</th>
+              <th className="text-right px-4 py-3">Dette élèves ($)</th>
+              <th className="text-right px-4 py-3">Salaires payés (FC)</th>
+              <th className="text-right px-4 py-3">Dette enseignants (FC)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {months.map((m) => (
+              <tr key={m.key} className="border-t border-slate-100" data-testid={`bilan-row-${m.key}`}>
+                <td className="px-4 py-3 font-medium text-slate-800">{m.label}</td>
+                <td className="px-4 py-3 text-right font-mono text-emerald-700">{money(m.recettes_eleves)}</td>
+                <td className={`px-4 py-3 text-right font-mono ${m.dette_eleves > 0 ? "text-rose-600" : "text-slate-400"}`}>{money(m.dette_eleves)}</td>
+                <td className="px-4 py-3 text-right font-mono text-emerald-700">{money(m.salaires_payes, "FC")}</td>
+                <td className={`px-4 py-3 text-right font-mono ${m.dette_enseignants > 0 ? "text-rose-600" : "text-slate-400"}`}>{money(m.dette_enseignants, "FC")}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-slate-200 bg-slate-50 font-semibold" data-testid="bilan-total-row">
+              <td className="px-4 py-3 text-slate-800">TOTAL ANNÉE</td>
+              <td className="px-4 py-3 text-right font-mono text-emerald-700">{money(totaux.recettes_eleves)}</td>
+              <td className="px-4 py-3 text-right font-mono text-rose-600">{money(totaux.dette_eleves)}</td>
+              <td className="px-4 py-3 text-right font-mono text-emerald-700">{money(totaux.salaires_payes, "FC")}</td>
+              <td className="px-4 py-3 text-right font-mono text-rose-600">{money(totaux.dette_enseignants, "FC")}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   );
 }
 
 function AddStudentDialog({ open, onClose, classes, onSaved }) {
-  const empty = { nom: "", postnom: "", prenom: "", genre: "M", date_naissance: "", class_id: "", tuteur_nom: "", tuteur_contact: "", status: "pre_inscrit" };
+  const empty = { nom: "", postnom: "", prenom: "", genre: "M", date_naissance: "", class_id: "", tuteur_nom: "", tuteur_contact: "", status: "pre_inscrit", prise_en_charge: false, parent_teacher_id: "" };
   const [form, setForm] = useState(empty);
   const [saving, setSaving] = useState(false);
+  const [teachers, setTeachers] = useState([]);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  useEffect(() => { if (open) api.get("/teachers").then((r) => setTeachers(r.data)).catch(() => {}); }, [open]);
 
   const submit = async () => {
     if (!form.nom || !form.class_id) { toast.error("Nom et classe requis"); return; }
     setSaving(true);
     try {
-      await api.post("/students", form);
+      await api.post("/students", { ...form, parent_teacher_id: form.parent_teacher_id || null });
       toast.success("Élève enregistré (Pré-inscrit)");
       setForm(empty); onClose(); onSaved();
     } catch (e) { toast.error(formatApiError(e.response?.data?.detail)); }
@@ -260,6 +332,18 @@ function AddStudentDialog({ open, onClose, classes, onSaved }) {
           </Field>
           <Field label="Nom du tuteur"><input className="fld" value={form.tuteur_nom} onChange={(e) => set("tuteur_nom", e.target.value)} /></Field>
           <Field label="Contact tuteur"><input className="fld" value={form.tuteur_contact} onChange={(e) => set("tuteur_contact", e.target.value)} /></Field>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-3">
+          <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer" data-testid="check-prise-en-charge">
+            <input type="checkbox" checked={form.prise_en_charge} onChange={(e) => set("prise_en_charge", e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
+            Élève <strong>pris en charge</strong> par l'établissement (ne paie pas)
+          </label>
+          <Field label="Enfant d'un enseignant (scolarité déduite de son salaire)">
+            <select className="fld" value={form.parent_teacher_id || ""} onChange={(e) => set("parent_teacher_id", e.target.value)} data-testid="select-parent-teacher">
+              <option value="">— Non / Aucun —</option>
+              {teachers.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </Field>
         </div>
         <DialogFooter>
           <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-300 text-sm text-slate-600">Annuler</button>
@@ -361,7 +445,7 @@ function DebtsPanel({ students, classes, className }) {
   const taux = Number(settings.taux_change) || 2800;
   const [classId, setClassId] = useState("");
   const list = classId ? students.filter((s) => s.class_id === classId) : students;
-  const STAT = { paye: "bg-emerald-500", partiel: "bg-amber-400", impaye: "bg-rose-400", na: "bg-slate-200" };
+  const STAT = { payé: "bg-emerald-500", partiel: "bg-amber-400", impaye: "bg-rose-400", nar: "bg-slate-400" };
   return (
     <div data-testid="debts-panel">
       <div className="flex flex-wrap gap-3 items-end mb-4">
