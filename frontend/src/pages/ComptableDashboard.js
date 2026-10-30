@@ -44,6 +44,9 @@ export default function ComptableDashboard() {
   const taux = Number(settings.taux_change) || 2800;
   const [stats, setStats] = useState(null);
   const [students, setStudents] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [studentRegime, setStudentRegime] = useState("standard");
+  const [monthlyData, setMonthlyData] = useState([]);
   const [classes, setClasses] = useState([]);
   const [payments, setPayments] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -438,6 +441,53 @@ function ExpensesPanel({ expenses, reload, recettes, depenses }) {
   const del = async (id) => { await api.delete(`/expenses/${id}`); reload(); };
 
   return (
+    {/* Barre de recherche dynamique */}
+<div className="mb-6">
+  <input
+    type="text"
+    placeholder="Rechercher par nom, prénom ou matricule..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800"
+  />
+</div>
+
+{/* Tableau du bilan financier mensuel et salaires */}
+<div className="bg-white p-6 rounded-xl shadow-sm border space-y-6 mb-6">
+  <h2 className="text-xl font-bold text-slate-800">Bilan Financier Mensuel & Salaires Enseignants</h2>
+  <div className="overflow-x-auto">
+    <table className="w-full text-left border-collapse">
+      <thead>
+        <tr className="border-b bg-slate-50 text-sm text-slate-600">
+          <th className="p-3">Mois</th>
+          <th className="p-3 text-emerald-600">Total Recettes ($)</th>
+          <th className="p-3 text-rose-600">Total Dettes Élèves ($)</th>
+          <th className="p-3 text-blue-600">Masse Salariale Enseignants ($)</th>
+          <th className="p-3 text-amber-600">Retenues (Enfants d'enseignants) ($)</th>
+          <th className="p-3 font-bold text-slate-800">Net Salaires à Verser ($)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {monthlyData && monthlyData.length > 0 ? (
+          monthlyData.map((item, index) => (
+            <tr key={index} className="border-b hover:bg-slate-50 text-sm">
+              <td className="p-3 font-medium text-slate-700">{item.month}</td>
+              <td className="p-3 text-emerald-600 font-semibold">${item.totalRecettes?.toLocaleString()}</td>
+              <td className="p-3 text-rose-600 font-semibold">${item.totalDettes?.toLocaleString()}</td>
+              <td className="p-3 text-blue-600">${item.salairesBrut?.toLocaleString()}</td>
+              <td className="p-3 text-amber-600">-${item.deductionsEnfants?.toLocaleString()}</td>
+              <td className="p-3 font-bold text-slate-800">${(item.salairesBrut - item.deductionsEnfants)?.toLocaleString()}</td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan="6" className="p-4 text-center text-slate-500">Aucune donnée mensuelle disponible pour le moment.</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
     <div className="grid lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
@@ -487,61 +537,5 @@ function Field({ label, children }) {
       <div className="mt-1">{children}</div>
     </label>
   );
-}// --- AJOUTS : GESTION DES BILANS MENSUELS, RECHERCHE ET RÉGIMES ÉLÈVES ---
 
-// 1. État pour la recherche et les nouveaux filtres
-// (À placer au début de votre composant principal s'ils n'y sont pas déjà)
-const [searchTerm, setSearchTerm] = useState("");
-const [studentRegime, setStudentRegime] = useState("standard");
-
-// 2. Composant de la Barre de Recherche (à insérer en haut de votre tableau/section)
-const SearchBarSection = () => (
-  <div className="mb-6">
-    <input
-      type="text"
-      placeholder="Rechercher par nom, prénom ou matricule..."
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800"
-    />
-  </div>
-);
-
-// 3. Bloc du Bilan Mensuel (Recettes, Dettes, Salaires et Retenues)
-const MonthlyFinancialSummary = ({ monthlyData }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border space-y-6 my-6">
-    <h2 className="text-xl font-bold text-slate-800">Bilan Financier Mensuel & Salaires Enseignants</h2>
-    <div className="overflow-x-auto">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="border-b bg-slate-50 text-sm text-slate-600">
-            <th className="p-3">Mois</th>
-            <th className="p-3 text-emerald-600">Total Recettes ($)</th>
-            <th className="p-3 text-rose-600">Total Dettes Élèves ($)</th>
-            <th className="p-3 text-blue-600">Masse Salariale Enseignants ($)</th>
-            <th className="p-3 text-amber-600">Retenues (Enfants d'enseignants) ($)</th>
-            <th className="p-3 font-bold text-slate-800">Net Salaires à Verser ($)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {monthlyData && monthlyData.length > 0 ? (
-            monthlyData.map((item, index) => (
-              <tr key={index} className="border-b hover:bg-slate-50 text-sm">
-                <td className="p-3 font-medium text-slate-700">{item.month}</td>
-                <td className="p-3 text-emerald-600 font-semibold">${item.totalRecettes?.toLocaleString()}</td>
-                <td className="p-3 text-rose-600 font-semibold">${item.totalDettes?.toLocaleString()}</td>
-                <td className="p-3 text-blue-600">${item.salairesBrut?.toLocaleString()}</td>
-                <td className="p-3 text-amber-600">-${item.deductionsEnfants?.toLocaleString()}</td>
-                <td className="p-3 font-bold text-slate-800">${(item.salairesBrut - item.deductionsEnfants)?.toLocaleString()}</td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="6" className="p-4 text-center text-slate-500">Aucune donnée mensuelle disponible pour le moment.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  </div>
-);
+ 
