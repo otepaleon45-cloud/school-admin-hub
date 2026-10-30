@@ -445,7 +445,7 @@ function DebtsPanel({ students, classes, className }) {
     const taux = Number(settings?.taux_change) || 2800;
     const [classId, setClassId] = useState("");
     const list = classId ? students.filter((s) => s.class_id === classId) : students;
-    const STAT = { payé: "bg-emerald-500", partiel: "bg-amber-400", impaye: "bg-rose-400", nar: "bg-slate-400" };
+    const STAT = { "payé": "bg-emerald-500", partiel: "bg-amber-400", "impayé": "bg-rose-400", nar: "bg-slate-400" };
 
     return (
     <div data-testid="debts-panel">
