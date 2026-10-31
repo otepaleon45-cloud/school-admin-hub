@@ -34,3 +34,4 @@ export function formatApiError(detail) {
   }
   return String(detail);
 }
+export default api;
