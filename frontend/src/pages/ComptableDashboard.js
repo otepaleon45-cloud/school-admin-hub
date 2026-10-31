@@ -159,7 +159,7 @@ export default function ComptableDashboard() {
       )}
 
       {tab === "depenses" && (
-        <ExpensesPanel expenses={expenses} reload={load} recettes={stats?.recettes} depenses={stats?.depenses} />
+        <ExpensesPanel expenses={expenses} reload={load} recettes={stats?.recettes} depenses={stats?.depenses} searchTerm={searchTerm} setSearchTerm={setSearchTerm} monthlyData={monthlyData} />
       )}
 
       {tab === "dettes" && <DebtsPanel students={students} classes={classes} className={className} />}
@@ -485,7 +485,7 @@ function DebtsPanel({ students, classes, className }) {
                   <div className="flex gap-1 justify-center">
                     {(s.ledger?.mois || []).map((m) => (
                       <span key={m.key} title={`${m.label} — ${m.status}`} data-testid={`debt-${s.id}-${m.key}`}
-                        className={`h-6 w-7 rounded text-[9px] grid place-items-center text-white font-semibold ${STAT[m.status] || STAT.na}`}>
+                        className={`h-6 w-7 rounded text-[9px] grid place-items-center text-white font-semibold ${STAT[m.status] || STAT.nar}`}>
                         {m.label.slice(0, 3)}
                       </span>
                     ))}
@@ -526,90 +526,83 @@ function ExpensesPanel({ expenses, reload, recettes, depenses }) {
   const del = async (id) => { await api.delete(`/expenses/${id}`); reload(); };
 
   return (
-    {/* Barre de recherche dynamique */}
-<div className="mb-6">
-  <input
-    type="text"
-    placeholder="Rechercher par nom, prénom ou matricule..."
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-800"
-  />
-</div>
-
-{/* Tableau du bilan financier mensuel et salaires */}
-<div className="bg-white p-6 rounded-xl shadow-sm border space-y-6 mb-6">
-  <h2 className="text-xl font-bold text-slate-800">Bilan Financier Mensuel & Salaires Enseignants</h2>
-  <div className="overflow-x-auto">
-    <table className="w-full text-left border-collapse">
-      <thead>
-        <tr className="border-b bg-slate-50 text-sm text-slate-600">
-          <th className="p-3">Mois</th>
-          <th className="p-3 text-emerald-600">Total Recettes ($)</th>
-          <th className="p-3 text-rose-600">Total Dettes Élèves ($)</th>
-          <th className="p-3 text-blue-600">Masse Salariale Enseignants ($)</th>
-          <th className="p-3 text-amber-600">Retenues (Enfants d'enseignants) ($)</th>
-          <th className="p-3 font-bold text-slate-800">Net Salaires à Verser ($)</th>
-        </tr>
-      </thead>
-      <tbody>
-        {monthlyData && monthlyData.length > 0 ? (
-          monthlyData.map((item, index) => (
-            <tr key={index} className="border-b hover:bg-slate-50 text-sm">
-              <td className="p-3 font-medium text-slate-700">{item.month}</td>
-              <td className="p-3 text-emerald-600 font-semibold">${item.totalRecettes?.toLocaleString()}</td>
-              <td className="p-3 text-rose-600 font-semibold">${item.totalDettes?.toLocaleString()}</td>
-              <td className="p-3 text-blue-600">${item.salairesBrut?.toLocaleString()}</td>
-              <td className="p-3 text-amber-600">-${item.deductionsEnfants?.toLocaleString()}</td>
-              <td className="p-3 font-bold text-slate-800">${(item.salairesBrut - item.deductionsEnfants)?.toLocaleString()}</td>
-            </tr>
-          ))
-        ) : (
-          <tr>
-            <td colSpan="6" className="p-4 text-center text-slate-500">Aucune donnée mensuelle disponible pour le moment.</td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  </div>
-</div>
-    <div className="grid lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="font-display font-semibold text-slate-800">Registre des dépenses</h3>
-          <div className="text-xs text-slate-500">Recettes {money(recettes)} · Dépenses {money(depenses)} (converti en $)</div>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div className="text-xs font-semibold text-slate-400 uppercase">Total Recettes</div>
+          <div className="text-2xl font-bold font-display text-emerald-600 mt-1">{money(recettes)}</div>
         </div>
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
-            <tr><th className="text-left px-4 py-3">Catégorie</th><th className="text-left px-4 py-3">Description</th><th className="text-left px-4 py-3">Date</th><th className="text-right px-4 py-3">Montant</th><th></th></tr>
-          </thead>
-          <tbody>
-            {expenses.map((e) => (
-              <tr key={e.id} className="border-t border-slate-100">
-                <td className="px-4 py-3 text-slate-700">{e.category}</td>
-                <td className="px-4 py-3 text-slate-500">{e.description}</td>
-                <td className="px-4 py-3 text-slate-500">{new Date(e.date).toLocaleDateString("fr-FR")}</td>
-                <td className="px-4 py-3 text-right font-mono text-rose-600">{money(e.amount, e.currency)}</td>
-                <td className="px-4 py-3 text-right"><button onClick={() => del(e.id)} className="text-slate-400 hover:text-rose-600"><Trash2 className="h-4 w-4" /></button></td>
-              </tr>
-            ))}
-            {expenses.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Aucune dépense</td></tr>}
-          </tbody>
-        </table>
-      </div>
-      <div className="bg-white rounded-xl border border-slate-200 p-5 h-fit">
-        <h3 className="font-display font-semibold text-slate-800 mb-4 flex items-center gap-2"><PlusCircle className="h-5 w-5 text-emerald-600" /> Nouvelle dépense</h3>
-        <div className="space-y-3">
-          <Field label="Catégorie"><select className="fld" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{cats.map((c) => <option key={c}>{c}</option>)}</select></Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Montant"><input type="number" className="fld" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} data-testid="input-expense-amount" /></Field>
-            <Field label="Devise"><select className="fld" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} data-testid="select-expense-devise"><option value="FC">Franc (FC)</option><option value="USD">Dollar ($)</option></select></Field>
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div className="text-xs font-semibold text-slate-400 uppercase">Total Dépenses</div>
+          <div className="text-2xl font-bold font-display text-rose-600 mt-1">{money(depenses)}</div>
+        </div>
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+          <div className="text-xs font-semibold text-slate-400 uppercase">Solde Net</div>
+          <div className={`text-2xl font-bold font-display mt-1 ${(recettes || 0) - (depenses || 0) >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+            {money((recettes || 0) - (depenses || 0))}
           </div>
-          <Field label="Description"><input className="fld" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
-          <button onClick={add} disabled={saving} data-testid="btn-add-expense" className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold disabled:opacity-60">
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />} Enregistrer
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <h3 className="font-display font-bold text-base text-slate-800">Enregistrer une nouvelle dépense</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <Field label="Catégorie">
+            <select className="fld" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+              {cats.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </Field>
+          <Field label="Montant">
+            <input type="number" className="fld" placeholder="0.00" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+          </Field>
+          <Field label="Devise">
+            <select className="fld" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
+              <option value="FC">Franc (FC)</option>
+              <option value="USD">Dollar ($)</option>
+            </select>
+          </Field>
+          <Field label="Description">
+            <input className="fld" placeholder="Détails de la dépense..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          </Field>
+        </div>
+        <div className="flex justify-end">
+          <button onClick={add} disabled={saving} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50">
+            {saving && <Loader2 className="h-4 w-4 animate-spin" />} Enregistrer la dépense
           </button>
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        <div className="p-4 border-b bg-slate-50 font-semibold text-slate-700 text-sm">Historique des dépenses</div>
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+            <tr>
+              <th className="text-left px-4 py-3">Date</th>
+              <th className="text-left px-4 py-3">Catégorie</th>
+              <th className="text-left px-4 py-3">Description</th>
+              <th className="text-right px-4 py-3">Montant</th>
+              <th className="text-right px-4 py-3">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(expenses || []).map((ex) => (
+              <tr key={ex.id} className="border-t border-slate-100">
+                <td className="px-4 py-3 text-slate-500">{new Date(ex.date || Date.now()).toLocaleDateString("fr-FR")}</td>
+                <td className="px-4 py-3 font-medium text-slate-800">{ex.category}</td>
+                <td className="px-4 py-3 text-slate-600">{ex.description || "—"}</td>
+                <td className="px-4 py-3 text-right font-mono font-medium text-rose-600">{money(ex.amount, ex.currency)}</td>
+                <td className="px-4 py-3 text-right">
+                  <button onClick={() => del(ex.id)} className="text-slate-400 hover:text-rose-600" title="Supprimer">
+                    <Trash2 className="h-4 w-4 inline" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {(!expenses || expenses.length === 0) && (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-400">Aucune dépense enregistrée</td></tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -622,5 +615,4 @@ function Field({ label, children }) {
       <div className="mt-1">{children}</div>
     </label>
   );
-
- 
+}
