@@ -167,13 +167,17 @@ export default function ComptableDashboard() {
       {tab === "bilan" && <MonthlyReportPanel />}
       {tab === "frais" && <ClassFeesPanel classes={classes} reload={load} />}
       {tab === "divers" && <FeeItemsPanel students={students} onReceipt={(r) => { setReceipt(r); load(); }} />}
-      {tab === "enseignants" && <TeachersPanel />}
-      {tab === "classes_budgets" && (
-      <div className="space-y-6 mt-4">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+  {tab === "classes_budgets" && (
+  <div className="space-y-6 mt-4">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-blue-900">Primaire</h3>
-        <p className="text-2xl font-bold text-gray-800">{stats?.primaire?.total || 0} élèves</p>
+        <p className="text-2xl font-bold text-gray-800">
+          {students.filter(s => {
+            const cl = classes.find(c => c.id === s.class_id);
+            return cl && cl.section?.toLowerCase().includes("primaire");
+          }).length} élèves
+        </p>
         <div className="text-xs space-y-1 pt-2 border-t border-blue-200">
           <p className="text-blue-900">Argent reçu : <span className="font-bold text-green-700">{money(stats?.primaire?.totalPaid || 0)}</span></p>
           <p className="text-blue-700">Budget : {money(stats?.budgets?.primaire || 0)}</p>
@@ -182,7 +186,12 @@ export default function ComptableDashboard() {
 
       <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-emerald-900">Secondaire</h3>
-        <p className="text-2xl font-bold text-gray-800">{stats?.secondaire?.total || 0} élèves</p>
+        <p className="text-2xl font-bold text-gray-800">
+          {students.filter(s => {
+            const cl = classes.find(c => c.id === s.class_id);
+            return cl && cl.section?.toLowerCase().includes("secondaire");
+          }).length} élèves
+        </p>
         <div className="text-xs space-y-1 pt-2 border-t border-emerald-200">
           <p className="text-emerald-900">Argent reçu : <span className="font-bold text-green-700">{money(stats?.secondaire?.totalPaid || 0)}</span></p>
           <p className="text-emerald-700">Budget : {money(stats?.budgets?.secondaire || 0)}</p>
@@ -191,7 +200,12 @@ export default function ComptableDashboard() {
 
       <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-amber-900">Maternelle</h3>
-        <p className="text-2xl font-bold text-gray-800">{stats?.maternelle?.total || 0} élèves</p>
+        <p className="text-2xl font-bold text-gray-800">
+          {students.filter(s => {
+            const cl = classes.find(c => c.id === s.class_id);
+            return cl && cl.section?.toLowerCase().includes("maternelle");
+          }).length} élèves
+        </p>
         <div className="text-xs space-y-1 pt-2 border-t border-amber-200">
           <p className="text-amber-900">Argent reçu : <span className="font-bold text-green-700">{money(stats?.maternelle?.totalPaid || 0)}</span></p>
           <p className="text-amber-700">Budget : {money(stats?.budgets?.maternelle || 0)}</p>
