@@ -3,9 +3,6 @@ import {
   Wallet, UserPlus, Loader2, Printer, Search, CalendarDays,
   DollarSign, Users, FileText, Settings, ShieldAlert, CheckCircle2
 } from "lucide-react";
-import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
-} from "@/components/ui/dialog";
 
 const STATUS_BADGE = {
   pre_inscrit: "bg-slate-100 text-slate-700",
@@ -34,12 +31,8 @@ const TABS = [
   { key: "classes_budgets", label: "Classes & Budgets" }
 ];
 
-const FEE_LABEL = MONTH_LABELS;
-
 export default function ComptableDashboard() {
-  const [tab, setTab] = useTab("vue");
-  const settings = useSettings();
-  const taux = Number(settings.taux_change) || 2800;
+  const [tab, setTab] = useState("vue");
   const [stats, setStats] = useState(null);
   const [students, setStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -80,14 +73,13 @@ export default function ComptableDashboard() {
       {/* CONTENU DE L'ONGLET CLASSES & BUDGETS */}
       {tab === "classes_budgets" && (
         <div className="space-y-6 mt-4">
-          {/* Totaux & Argent Reçu par Département */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm space-y-1">
               <h3 className="font-semibold text-blue-900">Primaire</h3>
               <p className="text-2xl font-bold text-gray-800">{stats?.primaire?.total || 0} élèves</p>
               <div className="text-xs space-y-1 pt-2 border-t border-blue-200">
-                <p className="text-blue-900">Argent reçu : <span className="font-bold text-green-700">{money(stats?.primaire?.totalPaid || 0)}</span></p>
-                <p className="text-blue-700">Budget : {money(stats?.budgets?.primaire || 0)}</p>
+                <p className="text-blue-900">Argent reçu : <span className="font-bold text-green-700">{stats?.primaire?.totalPaid || 0}</span></p>
+                <p className="text-blue-700">Budget : {stats?.budgets?.primaire || 0}</p>
               </div>
             </div>
 
@@ -95,8 +87,8 @@ export default function ComptableDashboard() {
               <h3 className="font-semibold text-emerald-900">Secondaire</h3>
               <p className="text-2xl font-bold text-gray-800">{stats?.secondaire?.total || 0} élèves</p>
               <div className="text-xs space-y-1 pt-2 border-t border-emerald-200">
-                <p className="text-emerald-900">Argent reçu : <span className="font-bold text-green-700">{money(stats?.secondaire?.totalPaid || 0)}</span></p>
-                <p className="text-emerald-700">Budget : {money(stats?.budgets?.secondaire || 0)}</p>
+                <p className="text-emerald-900">Argent reçu : <span className="font-bold text-green-700">{stats?.secondaire?.totalPaid || 0}</span></p>
+                <p className="text-emerald-700">Budget : {stats?.budgets?.secondaire || 0}</p>
               </div>
             </div>
 
@@ -104,8 +96,8 @@ export default function ComptableDashboard() {
               <h3 className="font-semibold text-amber-900">Maternelle</h3>
               <p className="text-2xl font-bold text-gray-800">{stats?.maternelle?.total || 0} élèves</p>
               <div className="text-xs space-y-1 pt-2 border-t border-amber-200">
-                <p className="text-amber-900">Argent reçu : <span className="font-bold text-green-700">{money(stats?.maternelle?.totalPaid || 0)}</span></p>
-                <p className="text-amber-700">Budget : {money(stats?.budgets?.maternelle || 0)}</p>
+                <p className="text-amber-900">Argent reçu : <span className="font-bold text-green-700">{stats?.maternelle?.totalPaid || 0}</span></p>
+                <p className="text-amber-700">Budget : {stats?.budgets?.maternelle || 0}</p>
               </div>
             </div>
 
