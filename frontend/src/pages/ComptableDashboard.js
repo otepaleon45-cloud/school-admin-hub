@@ -170,48 +170,85 @@ export default function ComptableDashboard() {
 {tab === "classes_budgets" && (
   <div className="space-y-6 mt-4">
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* PRIMAIRE */}
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-blue-900">Primaire</h3>
         <p className="text-2xl font-bold text-gray-800">
           {students.filter(s => {
-            const nomClasse = (s.classe || className(s.class_id)).toLowerCase();
-            return nomClasse.includes("primaire") || nomClasse.includes("prim");
+            const c = (s.classe || className(s.class_id)).toLowerCase();
+            return c.includes("primaire") || c.includes("prim");
           }).length} élèves
         </p>
         <div className="text-xs space-y-1 pt-2 border-t border-blue-200">
-          <p className="text-blue-900">Argent reçu : <span className="font-bold text-green-700">{money(stats?.primaire?.totalPaid || 0)}</span></p>
+          <p className="text-blue-900">
+            Argent reçu : <span className="font-bold text-green-700">
+              {money(payments
+                .filter(p => {
+                  const st = students.find(s => s.id === p.student_id);
+                  const c = (st?.classe || className(st?.class_id)).toLowerCase();
+                  return c.includes("primaire") || c.includes("prim");
+                })
+                .reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
+              )}
+            </span>
+          </p>
           <p className="text-blue-700">Budget : {money(stats?.budgets?.primaire || 0)}</p>
         </div>
       </div>
 
+      {/* SECONDAIRE / HUMANITÉS */}
       <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-emerald-900">Secondaire</h3>
         <p className="text-2xl font-bold text-gray-800">
           {students.filter(s => {
-            const nomClasse = (s.classe || className(s.class_id)).toLowerCase();
-            return nomClasse.includes("secondaire") || nomClasse.includes("sec");
+            const c = (s.classe || className(s.class_id)).toLowerCase();
+            return c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec");
           }).length} élèves
         </p>
         <div className="text-xs space-y-1 pt-2 border-t border-emerald-200">
-          <p className="text-emerald-900">Argent reçu : <span className="font-bold text-green-700">{money(stats?.secondaire?.totalPaid || 0)}</span></p>
+          <p className="text-emerald-900">
+            Argent reçu : <span className="font-bold text-green-700">
+              {money(payments
+                .filter(p => {
+                  const st = students.find(s => s.id === p.student_id);
+                  const c = (st?.classe || className(st?.class_id)).toLowerCase();
+                  return c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec");
+                })
+                .reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
+              )}
+            </span>
+          </p>
           <p className="text-emerald-700">Budget : {money(stats?.budgets?.secondaire || 0)}</p>
         </div>
       </div>
 
+      {/* MATERNELLE */}
       <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-amber-900">Maternelle</h3>
         <p className="text-2xl font-bold text-gray-800">
           {students.filter(s => {
-            const nomClasse = (s.classe || className(s.class_id)).toLowerCase();
-            return nomClasse.includes("maternel") || nomClasse.includes("mat");
+            const c = (s.classe || className(s.class_id)).toLowerCase();
+            return c.includes("maternel") || c.includes("mat");
           }).length} élèves
         </p>
         <div className="text-xs space-y-1 pt-2 border-t border-amber-200">
-          <p className="text-amber-900">Argent reçu : <span className="font-bold text-green-700">{money(stats?.maternelle?.totalPaid || 0)}</span></p>
+          <p className="text-amber-900">
+            Argent reçu : <span className="font-bold text-green-700">
+              {money(payments
+                .filter(p => {
+                  const st = students.find(s => s.id === p.student_id);
+                  const c = (st?.classe || className(st?.class_id)).toLowerCase();
+                  return c.includes("maternel") || c.includes("mat");
+                })
+                .reduce((acc, p) => acc + (Number(p.amount) || 0), 0)
+              )}
+            </span>
+          </p>
           <p className="text-amber-700">Budget : {money(stats?.budgets?.maternelle || 0)}</p>
         </div>
       </div>
 
+      {/* ENSEIGNANTS */}
       <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-purple-900">Enseignants</h3>
         <p className="text-2xl font-bold text-gray-800">{stats?.enseignants || 0} Actifs</p>
