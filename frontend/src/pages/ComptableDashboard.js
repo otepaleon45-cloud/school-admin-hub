@@ -619,7 +619,7 @@ function Field({ label, children }) {
   );
 }
 {/* CONTENU DE L'ONGLET CLASSES & BUDGETS */}
-{tab === "classes_budgets" && (
+{tab?.key === "classes_budgets" || tab === "classes_budgets" ? (
   <div className="space-y-6 mt-4">
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm space-y-1">
@@ -656,4 +656,4 @@ function Field({ label, children }) {
       </div>
     </div>
   </div>
-)}
+) : null}
