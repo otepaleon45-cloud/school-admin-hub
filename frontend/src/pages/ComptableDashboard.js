@@ -620,9 +620,7 @@ function Field({ label, children }) {
 }
 {/* CONTENU DE L'ONGLET CLASSES & BUDGETS */}
 <div className="space-y-6 mt-4">
-
-  <div className="space-y-6 mt-4">
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-blue-900">Primaire</h3>
         <p className="text-2xl font-bold text-gray-800">{stats?.primaire?.total || 0} élèves</p>
@@ -657,4 +655,4 @@ function Field({ label, children }) {
       </div>
     </div>
   </div>
-) : null}
+
