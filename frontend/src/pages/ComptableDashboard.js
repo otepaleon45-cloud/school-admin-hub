@@ -167,15 +167,15 @@ export default function ComptableDashboard() {
       {tab === "bilan" && <MonthlyReportPanel />}
       {tab === "frais" && <ClassFeesPanel classes={classes} reload={load} />}
       {tab === "divers" && <FeeItemsPanel students={students} onReceipt={(r) => { setReceipt(r); load(); }} />}
-  {tab === "classes_budgets" && (
+{tab === "classes_budgets" && (
   <div className="space-y-6 mt-4">
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-blue-900">Primaire</h3>
         <p className="text-2xl font-bold text-gray-800">
           {students.filter(s => {
-            const cl = classes.find(c => c.id === s.class_id);
-            return cl && cl.section?.toLowerCase().includes("primaire");
+            const nomClasse = (s.classe || className(s.class_id)).toLowerCase();
+            return nomClasse.includes("primaire") || nomClasse.includes("prim");
           }).length} élèves
         </p>
         <div className="text-xs space-y-1 pt-2 border-t border-blue-200">
@@ -188,8 +188,8 @@ export default function ComptableDashboard() {
         <h3 className="font-semibold text-emerald-900">Secondaire</h3>
         <p className="text-2xl font-bold text-gray-800">
           {students.filter(s => {
-            const cl = classes.find(c => c.id === s.class_id);
-            return cl && cl.section?.toLowerCase().includes("secondaire");
+            const nomClasse = (s.classe || className(s.class_id)).toLowerCase();
+            return nomClasse.includes("secondaire") || nomClasse.includes("sec");
           }).length} élèves
         </p>
         <div className="text-xs space-y-1 pt-2 border-t border-emerald-200">
@@ -202,8 +202,8 @@ export default function ComptableDashboard() {
         <h3 className="font-semibold text-amber-900">Maternelle</h3>
         <p className="text-2xl font-bold text-gray-800">
           {students.filter(s => {
-            const cl = classes.find(c => c.id === s.class_id);
-            return cl && cl.section?.toLowerCase().includes("maternelle");
+            const nomClasse = (s.classe || className(s.class_id)).toLowerCase();
+            return nomClasse.includes("maternel") || nomClasse.includes("mat");
           }).length} élèves
         </p>
         <div className="text-xs space-y-1 pt-2 border-t border-amber-200">
