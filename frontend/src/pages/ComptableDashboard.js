@@ -3,6 +3,9 @@ import {
   Wallet, UserPlus, Loader2, Printer, Search, CalendarDays,
   DollarSign, Users, FileText, Settings, ShieldAlert, CheckCircle2
 } from "lucide-react";
+import { 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter 
+} from "@/components/ui/dialog";
 
 const STATUS_BADGE = {
   pre_inscrit: "bg-slate-100 text-slate-700",
@@ -41,6 +44,28 @@ export default function ComptableDashboard() {
   const [classes, setClasses] = useState([]);
   const [payments, setPayments] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Récupération des données du tableau de bord
+    fetchData();
+  }, []);
+
+  async function fetchData() {
+    try {
+      setLoading(true);
+      const res = await api.get("/comptable/dashboard");
+      if (res && res.data) {
+        setStats(res.data.stats || {});
+        setStudents(res.data.students || []);
+        setClasses(res.data.classes || []);
+      }
+    } catch (err) {
+      console.error("Erreur de chargement", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function Field({ label, children }) {
     return (
@@ -52,7 +77,7 @@ export default function ComptableDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Navigation des onglets */}
       <div className="flex space-x-2 border-b border-gray-200 pb-2 overflow-x-auto">
         {TABS.map((t) => (
@@ -70,8 +95,14 @@ export default function ComptableDashboard() {
         ))}
       </div>
 
+      {loading && (
+        <div className="flex items-center justify-center py-12 text-slate-500">
+          <Loader2 className="w-6 h-6 animate-spin mr-2" /> Chargement des données...
+        </div>
+      )}
+
       {/* CONTENU DE L'ONGLET CLASSES & BUDGETS */}
-      {tab === "classes_budgets" && (
+      {!loading && tab === "classes_budgets" && (
         <div className="space-y-6 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm space-y-1">
@@ -107,6 +138,14 @@ export default function ComptableDashboard() {
               <p className="text-xs text-purple-700 pt-3">Corps professoral global</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Reste des onglets d'origine conservés */}
+      {!loading && tab === "vue" && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold text-gray-800">Vue d'ensemble</h2>
+          <p className="text-sm text-gray-600">Bienvenue sur votre tableau de bord comptable.</p>
         </div>
       )}
     </div>
