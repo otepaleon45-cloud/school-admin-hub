@@ -619,6 +619,7 @@ function Field({ label, children }) {
   );
 }
 {/* CONTENU DE L'ONGLET CLASSES & BUDGETS */}
+<div className="space-y-6 mt-4">
 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
   <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm space-y-1">
     <h3 className="font-semibold text-blue-900">Primaire</h3>
@@ -654,5 +655,5 @@ function Field({ label, children }) {
         <p className="text-xs text-purple-700 pt-3">Corps professoral global</p>
       </div>
     </div>
-  </div>
+  
 
