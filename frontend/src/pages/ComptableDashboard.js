@@ -183,12 +183,14 @@ export default function ComptableDashboard() {
           <p className="text-blue-900">
             Argent reçu : <span className="font-bold text-green-700">
               {money(
-                students
-                  .filter(s => {
-                    const c = (s.classe || className(s.class_id)).toLowerCase();
+                payments
+                  .filter(p => {
+                    const stId = p.student_id || p.eleve_id || p.id_eleve;
+                    const st = students.find(s => s.id === stId);
+                    const c = (st?.classe || className(st?.class_id)).toLowerCase();
                     return c.includes("primaire") || c.includes("prim");
                   })
-                  .reduce((acc, s) => acc + Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
+                  .reduce((acc, p) => acc + Number(p.amount || p.montant || 0), 0)
               )}
             </span>
           </p>
@@ -209,12 +211,14 @@ export default function ComptableDashboard() {
           <p className="text-emerald-900">
             Argent reçu : <span className="font-bold text-green-700">
               {money(
-                students
-                  .filter(s => {
-                    const c = (s.classe || className(s.class_id)).toLowerCase();
+                payments
+                  .filter(p => {
+                    const stId = p.student_id || p.eleve_id || p.id_eleve;
+                    const st = students.find(s => s.id === stId);
+                    const c = (st?.classe || className(st?.class_id)).toLowerCase();
                     return (c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education")) && !c.includes("primaire") && !c.includes("maternel");
                   })
-                  .reduce((acc, s) => acc + Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
+                  .reduce((acc, p) => acc + Number(p.amount || p.montant || 0), 0)
               )}
             </span>
           </p>
@@ -235,12 +239,14 @@ export default function ComptableDashboard() {
           <p className="text-amber-900">
             Argent reçu : <span className="font-bold text-green-700">
               {money(
-                students
-                  .filter(s => {
-                    const c = (s.classe || className(s.class_id)).toLowerCase();
+                payments
+                  .filter(p => {
+                    const stId = p.student_id || p.eleve_id || p.id_eleve;
+                    const st = students.find(s => s.id === stId);
+                    const c = (st?.classe || className(st?.class_id)).toLowerCase();
                     return c.includes("maternel") || c.includes("mat");
                   })
-                  .reduce((acc, s) => acc + Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
+                  .reduce((acc, p) => acc + Number(p.amount || p.montant || 0), 0)
               )}
             </span>
           </p>
