@@ -182,14 +182,13 @@ export default function ComptableDashboard() {
         <div className="text-xs space-y-1 pt-2 border-t border-blue-200">
           <p className="text-blue-900">
             Argent reçu : <span className="font-bold text-green-700">
-              {money(payments
-                .filter(p => {
-                  const studentId = p.student_id || p.eleve_id;
-                  const st = students.find(s => s.id === studentId);
-                  const c = (st?.classe || className(st?.class_id)).toLowerCase();
-                  return c.includes("primaire") || c.includes("prim");
-                })
-                .reduce((acc, p) => acc + (Number(p.amount || p.montant) || 0), 0)
+              {money(
+                students
+                  .filter(s => {
+                    const c = (s.classe || className(s.class_id)).toLowerCase();
+                    return c.includes("primaire") || c.includes("prim");
+                  })
+                  .reduce((acc, s) => acc + (Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
               )}
             </span>
           </p>
@@ -197,7 +196,7 @@ export default function ComptableDashboard() {
         </div>
       </div>
 
-      {/* SECONDAIRE / HUMANITÉS (Strict sans chevauchement) */}
+      {/* SECONDAIRE */}
       <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-emerald-900">Secondaire</h3>
         <p className="text-2xl font-bold text-gray-800">
@@ -209,14 +208,13 @@ export default function ComptableDashboard() {
         <div className="text-xs space-y-1 pt-2 border-t border-emerald-200">
           <p className="text-emerald-900">
             Argent reçu : <span className="font-bold text-green-700">
-              {money(payments
-                .filter(p => {
-                  const studentId = p.student_id || p.eleve_id;
-                  const st = students.find(s => s.id === studentId);
-                  const c = (st?.classe || className(st?.class_id)).toLowerCase();
-                  return (c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education")) && !c.includes("primaire") && !c.includes("maternel");
-                })
-                .reduce((acc, p) => acc + (Number(p.amount || p.montant) || 0), 0)
+              {money(
+                students
+                  .filter(s => {
+                    const c = (s.classe || className(s.class_id)).toLowerCase();
+                    return (c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education")) && !c.includes("primaire") && !c.includes("maternel");
+                  })
+                  .reduce((acc, s) => acc + (Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
               )}
             </span>
           </p>
@@ -236,14 +234,13 @@ export default function ComptableDashboard() {
         <div className="text-xs space-y-1 pt-2 border-t border-amber-200">
           <p className="text-amber-900">
             Argent reçu : <span className="font-bold text-green-700">
-              {money(payments
-                .filter(p => {
-                  const studentId = p.student_id || p.eleve_id;
-                  const st = students.find(s => s.id === studentId);
-                  const c = (st?.classe || className(st?.class_id)).toLowerCase();
-                  return c.includes("maternel") || c.includes("mat");
-                })
-                .reduce((acc, p) => acc + (Number(p.amount || p.montant) || 0), 0)
+              {money(
+                students
+                  .filter(s => {
+                    const c = (s.classe || className(s.class_id)).toLowerCase();
+                    return c.includes("maternel") || c.includes("mat");
+                  })
+                  .reduce((acc, s) => acc + (Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
               )}
             </span>
           </p>
