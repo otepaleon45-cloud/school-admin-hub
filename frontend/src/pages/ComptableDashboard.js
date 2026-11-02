@@ -183,13 +183,12 @@ export default function ComptableDashboard() {
           <p className="text-blue-900">
             Argent reçu : <span className="font-bold text-green-700">
               {money(
-                stats?.primaire?.totalPaid || stats?.primaire?.montant || stats?.primaire?.paid ||
                 payments.filter(p => {
-                  const pName = (p.student_name || p.eleve || p.nom_eleve || p.student || "").toLowerCase();
+                  const pEleve = (p.student_name || p.eleve || p.nom_eleve || p.student || "").toLowerCase();
                   return students.some(s => {
                     const c = (s.classe || className(s.class_id)).toLowerCase();
                     const sName = (s.nom_complet || s.nom || "").toLowerCase();
-                    return (c.includes("primaire") || c.includes("prim")) && pName && sName && pName.includes(sName);
+                    return (c.includes("primaire") || c.includes("prim")) && pEleve && sName && (pEleve.includes(sName) || sName.includes(pEleve));
                   });
                 }).reduce((acc, p) => acc + Number(p.amount || p.montant || 0), 0)
               )}
@@ -212,13 +211,12 @@ export default function ComptableDashboard() {
           <p className="text-emerald-900">
             Argent reçu : <span className="font-bold text-green-700">
               {money(
-                stats?.secondaire?.totalPaid || stats?.secondaire?.montant || stats?.secondaire?.paid ||
                 payments.filter(p => {
-                  const pName = (p.student_name || p.eleve || p.nom_eleve || p.student || "").toLowerCase();
+                  const pEleve = (p.student_name || p.eleve || p.nom_eleve || p.student || "").toLowerCase();
                   return students.some(s => {
                     const c = (s.classe || className(s.class_id)).toLowerCase();
                     const sName = (s.nom_complet || s.nom || "").toLowerCase();
-                    return ((c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education")) && !c.includes("primaire") && !c.includes("maternel")) && pName && sName && pName.includes(sName);
+                    return ((c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education")) && !c.includes("primaire") && !c.includes("maternel")) && pEleve && sName && (pEleve.includes(sName) || sName.includes(pEleve));
                   });
                 }).reduce((acc, p) => acc + Number(p.amount || p.montant || 0), 0)
               )}
@@ -241,13 +239,12 @@ export default function ComptableDashboard() {
           <p className="text-amber-900">
             Argent reçu : <span className="font-bold text-green-700">
               {money(
-                stats?.maternelle?.totalPaid || stats?.maternelle?.montant || stats?.maternelle?.paid ||
                 payments.filter(p => {
-                  const pName = (p.student_name || p.eleve || p.nom_eleve || p.student || "").toLowerCase();
+                  const pEleve = (p.student_name || p.eleve || p.nom_eleve || p.student || "").toLowerCase();
                   return students.some(s => {
                     const c = (s.classe || className(s.class_id)).toLowerCase();
                     const sName = (s.nom_complet || s.nom || "").toLowerCase();
-                    return (c.includes("maternel") || c.includes("mat")) && pName && sName && pName.includes(sName);
+                    return (c.includes("maternel") || c.includes("mat")) && pEleve && sName && (pEleve.includes(sName) || sName.includes(pEleve));
                   });
                 }).reduce((acc, p) => acc + Number(p.amount || p.montant || 0), 0)
               )}
