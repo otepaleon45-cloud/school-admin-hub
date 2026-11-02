@@ -41,7 +41,6 @@ const TABS = [
 const FEE_LABEL = MONTH_LABELS;
 
 export default function ComptableDashboard() {
-  const [editingStudent, setEditingStudent] = useState(null);
   const [tab, setTab] = useTab("vue");
   const settings = useSettings();
   const taux = Number(settings.taux_change) || 2800;
@@ -113,7 +112,7 @@ export default function ComptableDashboard() {
               <UserPlus className="h-4 w-4" /> Ajouter un élève
             </button>
           </div>
-         <StudentsTable students={students} className={className} onPay={setPayStudent} onEdit={setEditingStudent} onDelete={async (s) => {
+          <StudentsTable students={students} className={className} onPay={setPayStudent} onDelete={async (s) => {
             if (!window.confirm(`Supprimer l'élève ${s.nom} ${s.postnom || ""} ? Ses paiements seront aussi supprimés.`)) return;
             try { await api.delete(`/students/${s.id}`); toast.success("Élève supprimé"); load(); }
             catch (e) { toast.error(formatApiError(e.response?.data?.detail)); }
@@ -172,61 +171,121 @@ export default function ComptableDashboard() {
   <div className="space-y-6 mt-4">
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       {/* PRIMAIRE */}
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm space-y-1">
-        <h3 className="font-semibold text-blue-900">Primaire</h3>
-        <p className="text-2xl font-bold text-gray-800">
-          {students.filter(s => {
-            const c = (s.classe || className(s.class_id)).toLowerCase();
-            return c.includes("primaire") || c.includes("prim");
-          }).length} élèves
-        </p>
-        <div className="text-xs space-y-1 pt-2 border-t border-blue-200">
-          <p className="text-blue-900">
-            Argent reçu : <span className="font-bold text-green-700">
-              {money(stats?.primaire?.totalPaid || stats?.primaire?.montant || stats?.recettes_primaire || 0)}
-            </span>
-          </p>
-          <p className="text-blue-700">Budget : {money(stats?.budgets?.primaire || 0)}</p>
-        </div>
-      </div>
+      {(() => {
+        const primStudents = students.filter(s => {
+          const c = (s.classe || className(s.class_id)).toLowerCase();
+          return c.includes("primaire") || c.includes("prim");
+        });
+        const primPaid = payments.filter(p => {
+          const stId = p.student_id || p.eleve_id || p.id_eleve;
+          const pName = (p.student_name || p.eleve || p.nom_eleve || p.student || "").toLowerCase();
+          const st = students.find(s => 
+            (stId && (s.id === stId || s._id === stId || s.matricule === stId)) ||
+            (pName && primStudents.some(ps => (ps.nom && pName.includes(ps.nom.toLowerCase())) || (ps.nom_complet && pName.includes(ps.nom_complet.toLowerCase()))))
+          );
+          return st && primStudents.some(ps => ps.id === st.id);
+        }).reduce((acc, p) => {
+          const raw = p.amount ?? p.montant ?? 0;
+          let val = 0;
+          if (typeof raw === 'number') val = raw;
+          else if (typeof raw === 'string') {
+            const num = parseFloat(raw.replace(/\s/g, '').replace(',', '.'));
+            if (!isNaN(num)) {
+              val = raw.toLowerCase().includes('fc') ? num / taux : num;
+            }
+          }
+          return acc + val;
+        }, 0);
+
+        return (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm space-y-1">
+            <h3 className="font-semibold text-blue-900">Primaire</h3>
+            <p className="text-2xl font-bold text-gray-800">{primStudents.length} élèves</p>
+            <div className="text-xs space-y-1 pt-2 border-t border-blue-200">
+              <p className="text-blue-900">Argent reçu : <span className="font-bold text-green-700">{money(primPaid)}</span></p>
+              <p className="text-blue-700">Budget : {money(stats?.budgets?.primaire || 0)}</p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* SECONDAIRE */}
-      <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm space-y-1">
-        <h3 className="font-semibold text-emerald-900">Secondaire</h3>
-        <p className="text-2xl font-bold text-gray-800">
-          {students.filter(s => {
-            const c = (s.classe || className(s.class_id)).toLowerCase();
-            return (c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education")) && !c.includes("primaire") && !c.includes("maternel");
-          }).length} élèves
-        </p>
-        <div className="text-xs space-y-1 pt-2 border-t border-emerald-200">
-          <p className="text-emerald-900">
-            Argent reçu : <span className="font-bold text-green-700">
-              {money(stats?.secondaire?.totalPaid || stats?.secondaire?.montant || stats?.recettes_secondaire || 0)}
-            </span>
-          </p>
-          <p className="text-emerald-700">Budget : {money(stats?.budgets?.secondaire || 0)}</p>
-        </div>
-      </div>
+      {(() => {
+        const secStudents = students.filter(s => {
+          const c = (s.classe || className(s.class_id)).toLowerCase();
+          return (c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education") || c.includes("année")) && !c.includes("primaire") && !c.includes("maternel");
+        });
+        const secPaid = payments.filter(p => {
+          const stId = p.student_id || p.eleve_id || p.id_eleve;
+          const pName = (p.student_name || p.eleve || p.nom_eleve || p.student || "").toLowerCase();
+          const st = students.find(s => 
+            (stId && (s.id === stId || s._id === stId || s.matricule === stId)) ||
+            (pName && secStudents.some(ps => (ps.nom && pName.includes(ps.nom.toLowerCase())) || (ps.nom_complet && pName.includes(ps.nom_complet.toLowerCase()))))
+          );
+          return st && secStudents.some(ps => ps.id === st.id);
+        }).reduce((acc, p) => {
+          const raw = p.amount ?? p.montant ?? 0;
+          let val = 0;
+          if (typeof raw === 'number') val = raw;
+          else if (typeof raw === 'string') {
+            const num = parseFloat(raw.replace(/\s/g, '').replace(',', '.'));
+            if (!isNaN(num)) {
+              val = raw.toLowerCase().includes('fc') ? num / taux : num;
+            }
+          }
+          return acc + val;
+        }, 0);
+
+        return (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm space-y-1">
+            <h3 className="font-semibold text-emerald-900">Secondaire</h3>
+            <p className="text-2xl font-bold text-gray-800">{secStudents.length} élèves</p>
+            <div className="text-xs space-y-1 pt-2 border-t border-emerald-200">
+              <p className="text-emerald-900">Argent reçu : <span className="font-bold text-green-700">{money(secPaid)}</span></p>
+              <p className="text-emerald-700">Budget : {money(stats?.budgets?.secondaire || 0)}</p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* MATERNELLE */}
-      <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl shadow-sm space-y-1">
-        <h3 className="font-semibold text-amber-900">Maternelle</h3>
-        <p className="text-2xl font-bold text-gray-800">
-          {students.filter(s => {
-            const c = (s.classe || className(s.class_id)).toLowerCase();
-            return c.includes("maternel") || c.includes("mat");
-          }).length} élèves
-        </p>
-        <div className="text-xs space-y-1 pt-2 border-t border-amber-200">
-          <p className="text-amber-900">
-            Argent reçu : <span className="font-bold text-green-700">
-              {money(stats?.maternelle?.totalPaid || stats?.maternelle?.montant || stats?.recettes_maternelle || 0)}
-            </span>
-          </p>
-          <p className="text-amber-700">Budget : {money(stats?.budgets?.maternelle || 0)}</p>
-        </div>
-      </div>
+      {(() => {
+        const matStudents = students.filter(s => {
+          const c = (s.classe || className(s.class_id)).toLowerCase();
+          return c.includes("maternel") || c.includes("mat");
+        });
+        const matPaid = payments.filter(p => {
+          const stId = p.student_id || p.eleve_id || p.id_eleve;
+          const pName = (p.student_name || p.eleve || p.nom_eleve || p.student || "").toLowerCase();
+          const st = students.find(s => 
+            (stId && (s.id === stId || s._id === stId || s.matricule === stId)) ||
+            (pName && matStudents.some(ps => (ps.nom && pName.includes(ps.nom.toLowerCase())) || (ps.nom_complet && pName.includes(ps.nom_complet.toLowerCase()))))
+          );
+          return st && matStudents.some(ps => ps.id === st.id);
+        }).reduce((acc, p) => {
+          const raw = p.amount ?? p.montant ?? 0;
+          let val = 0;
+          if (typeof raw === 'number') val = raw;
+          else if (typeof raw === 'string') {
+            const num = parseFloat(raw.replace(/\s/g, '').replace(',', '.'));
+            if (!isNaN(num)) {
+              val = raw.toLowerCase().includes('fc') ? num / taux : num;
+            }
+          }
+          return acc + val;
+        }, 0);
+
+        return (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl shadow-sm space-y-1">
+            <h3 className="font-semibold text-amber-900">Maternelle</h3>
+            <p className="text-2xl font-bold text-gray-800">{matStudents.length} élèves</p>
+            <div className="text-xs space-y-1 pt-2 border-t border-amber-200">
+              <p className="text-amber-900">Argent reçu : <span className="font-bold text-green-700">{money(matPaid)}</span></p>
+              <p className="text-amber-700">Budget : {money(stats?.budgets?.maternelle || 0)}</p>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ENSEIGNANTS */}
       <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl shadow-sm space-y-1">
@@ -676,59 +735,7 @@ function ExpensesPanel({ expenses, reload, recettes, depenses }) {
     </div>
   );
 }
-{editingStudent && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
-      <h3 className="text-lg font-bold text-gray-900">Modifier l'élève</h3>
-      
-      <div className="space-y-3">
-        <div>
-          <label className="text-xs font-semibold text-gray-600">Nom complet</label>
-          <input
-            type="text"
-            value={editingStudent.nom_complet || editingStudent.nom || ""}
-            onChange={(e) => setEditingStudent({ ...editingStudent, nom_complet: e.target.value })}
-            className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
 
-        <div>
-          <label className="text-xs font-semibold text-gray-600">Classe</label>
-          <input
-            type="text"
-            value={editingStudent.classe || ""}
-            onChange={(e) => setEditingStudent({ ...editingStudent, classe: e.target.value })}
-            className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
-      </div>
-
-      <div className="flex justify-end space-x-3 pt-4 border-t">
-        <button
-          onClick={() => setEditingStudent(null)}
-          className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium"
-        >
-          Annuler
-        </button>
-        <button
-          onClick={async () => {
-            try {
-              await api.put(`/students/${editingStudent.id}`, editingStudent);
-              setEditingStudent(null);
-              toast.success("Informations mises à jour avec succès");
-              if (typeof load === 'function') load();
-            } catch (err) {
-              toast.error("Erreur lors de la modification");
-            }
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm"
-        >
-          Enregistrer
-        </button>
-      </div>
-    </div>
-  </div>
-)}
 function Field({ label, children }) {
   return (
     <label className="block">
