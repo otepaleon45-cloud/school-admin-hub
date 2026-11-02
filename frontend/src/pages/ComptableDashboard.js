@@ -41,6 +41,7 @@ const TABS = [
 const FEE_LABEL = MONTH_LABELS;
 
 export default function ComptableDashboard() {
+  const [editingStudent, setEditingStudent] = useState(null);
   const [tab, setTab] = useTab("vue");
   const settings = useSettings();
   const taux = Number(settings.taux_change) || 2800;
@@ -112,7 +113,7 @@ export default function ComptableDashboard() {
               <UserPlus className="h-4 w-4" /> Ajouter un élève
             </button>
           </div>
-          <StudentsTable students={students} className={className} onPay={setPayStudent} onDelete={async (s) => {
+         <StudentsTable students={students} className={className} onPay={setPayStudent} onEdit={setEditingStudent} onDelete={async (s) => {
             if (!window.confirm(`Supprimer l'élève ${s.nom} ${s.postnom || ""} ? Ses paiements seront aussi supprimés.`)) return;
             try { await api.delete(`/students/${s.id}`); toast.success("Élève supprimé"); load(); }
             catch (e) { toast.error(formatApiError(e.response?.data?.detail)); }
@@ -675,7 +676,59 @@ function ExpensesPanel({ expenses, reload, recettes, depenses }) {
     </div>
   );
 }
+{editingStudent && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl space-y-4">
+      <h3 className="text-lg font-bold text-gray-900">Modifier l'élève</h3>
+      
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs font-semibold text-gray-600">Nom complet</label>
+          <input
+            type="text"
+            value={editingStudent.nom_complet || editingStudent.nom || ""}
+            onChange={(e) => setEditingStudent({ ...editingStudent, nom_complet: e.target.value })}
+            className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+        </div>
 
+        <div>
+          <label className="text-xs font-semibold text-gray-600">Classe</label>
+          <input
+            type="text"
+            value={editingStudent.classe || ""}
+            onChange={(e) => setEditingStudent({ ...editingStudent, classe: e.target.value })}
+            className="w-full mt-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-3 pt-4 border-t">
+        <button
+          onClick={() => setEditingStudent(null)}
+          className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium"
+        >
+          Annuler
+        </button>
+        <button
+          onClick={async () => {
+            try {
+              await api.put(`/students/${editingStudent.id}`, editingStudent);
+              setEditingStudent(null);
+              toast.success("Informations mises à jour avec succès");
+              if (typeof load === 'function') load();
+            } catch (err) {
+              toast.error("Erreur lors de la modification");
+            }
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm"
+        >
+          Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 function Field({ label, children }) {
   return (
     <label className="block">
