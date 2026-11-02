@@ -197,13 +197,13 @@ export default function ComptableDashboard() {
         </div>
       </div>
 
-      {/* SECONDAIRE / HUMANITÉS / ÉDUCATION DE BASE */}
+      {/* SECONDAIRE / HUMANITÉS (Strict sans chevauchement) */}
       <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl shadow-sm space-y-1">
         <h3 className="font-semibold text-emerald-900">Secondaire</h3>
         <p className="text-2xl font-bold text-gray-800">
           {students.filter(s => {
             const c = (s.classe || className(s.class_id)).toLowerCase();
-            return c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education") || c.includes("année");
+            return (c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education")) && !c.includes("primaire") && !c.includes("maternel");
           }).length} élèves
         </p>
         <div className="text-xs space-y-1 pt-2 border-t border-emerald-200">
@@ -214,7 +214,7 @@ export default function ComptableDashboard() {
                   const studentId = p.student_id || p.eleve_id;
                   const st = students.find(s => s.id === studentId);
                   const c = (st?.classe || className(st?.class_id)).toLowerCase();
-                  return c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education") || c.includes("année");
+                  return (c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education")) && !c.includes("primaire") && !c.includes("maternel");
                 })
                 .reduce((acc, p) => acc + (Number(p.amount || p.montant) || 0), 0)
               )}
