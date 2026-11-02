@@ -188,7 +188,7 @@ export default function ComptableDashboard() {
                     const c = (s.classe || className(s.class_id)).toLowerCase();
                     return c.includes("primaire") || c.includes("prim");
                   })
-                  .reduce((acc, s) => acc + (Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
+                  .reduce((acc, s) => acc + Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
               )}
             </span>
           </p>
@@ -214,7 +214,7 @@ export default function ComptableDashboard() {
                     const c = (s.classe || className(s.class_id)).toLowerCase();
                     return (c.includes("humanité") || c.includes("humanite") || c.includes("secondaire") || c.includes("sec") || c.includes("éducation") || c.includes("education")) && !c.includes("primaire") && !c.includes("maternel");
                   })
-                  .reduce((acc, s) => acc + (Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
+                  .reduce((acc, s) => acc + Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
               )}
             </span>
           </p>
@@ -240,7 +240,7 @@ export default function ComptableDashboard() {
                     const c = (s.classe || className(s.class_id)).toLowerCase();
                     return c.includes("maternel") || c.includes("mat");
                   })
-                  .reduce((acc, s) => acc + (Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
+                  .reduce((acc, s) => acc + Number(s.paid || s.paid_amount || s.montant_paye || 0), 0)
               )}
             </span>
           </p>
